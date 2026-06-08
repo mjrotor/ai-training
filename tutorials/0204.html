@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperature, Tokens & Parameters — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-2-4">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-1">Phase 1</a> / Day 2, Lesson 4</div>
+    <div class="lesson-number">Day 2, Lesson 4 of 5</div>
+    <h1 class="lesson-title">Temperature, Tokens & Parameters</h1>
+    <p class="lesson-desc">Learn about temperature, tokens & parameters.</p>
+  </div>
+
+<h2>Understanding Temperature, Tokens &amp; Parameters</h2>
+
+<p>When you interact with an AI agent, you're not just sending a message into a black box. Behind the scenes, several key settings shape how the AI responds. In this lesson, we'll explore three fundamental concepts that control the behavior of AI agents: <strong>temperature</strong>, <strong>tokens</strong>, and <strong>parameters</strong>. Understanding these will help you get better, more predictable results from your AI interactions.</p>
+
+<h2>What Are Tokens?</h2>
+
+<p>Before we dive into temperature and other parameters, we need to understand <strong>tokens</strong> — the basic units of text that AI models process.</p>
+
+<h3>Tokens: The Building Blocks of AI Text</h3>
+
+<p>AI models don't read text the way humans do. Instead, they break down text into smaller pieces called <strong>tokens</strong>. A token can be:</p>
+
+<ul>
+  <li>A whole word (e.g., "hello")</li>
+  <li>A part of a word (e.g., "un" + "break" + "able")</li>
+  <li>A punctuation mark (e.g., "." or "!")</li>
+  <li>A space or special character</li>
+</ul>
+
+<p>As a rough rule of thumb, <strong>1 token ≈ 4 characters</strong> in English, or about <strong>0.75 words</strong>. So the sentence "Hello, world!" might be broken into 4 tokens: <code>["Hello", ",", " world", "!"]</code>.</p>
+
+<div class="callout callout-info">
+  <strong>💡 Did you know?</strong> Different AI models use different tokenizers. The same sentence might be split into a different number of tokens depending on which model you're using. This is why token counts can vary between services.
+</div>
+
+<h3>Why Tokens Matter</h3>
+
+<p>Tokens are important for two main reasons:</p>
+
+<ol>
+  <li><strong>Cost:</strong> Most AI services charge based on the number of tokens you send and receive. More tokens = higher cost.</li>
+  <li><strong>Limits:</strong> Every AI model has a <strong>context window</strong> — a maximum number of tokens it can process in a single request. If your input plus the expected output exceeds this limit, the request will fail or the response will be cut off.</li>
+</ol>
+
+<h3>Counting Tokens in Python</h3>
+
+<p>Let's see how to count tokens using Python. Many AI libraries include built-in tokenizers, but we can also use the <code>tiktoken</code> library (used by OpenAI models) to count tokens directly.</p>
+
+<pre><code>import tiktoken
+
+# Load the tokenizer for a specific model
+enc = tiktoken.encoding_for_model("gpt-4")
+
+# A sample text
+text = "Hello, world! This is a tutorial about AI agents."
+
+# Encode the text into tokens
+tokens = enc.encode(text)
+
+# Count the tokens
+token_count = len(tokens)
+print(f"Text: '{text}'")
+print(f"Number of tokens: {token_count}")
+print(f"Tokens: {tokens}")
+
+# Decode back to see what each token represents
+for token_id in tokens:
+    token_text = enc.decode([token_id])
+    print(f"  Token ID {token_id} → '{token_text}'")
+</code></pre>
+
+<p>Running this code will show you exactly how the text is broken down into individual tokens and how many there are.</p>
+
+<div class="callout callout-tip">
+  <strong>🔧 Pro Tip:</strong> When building AI applications, always estimate your token usage before making API calls. This helps you stay within budget and avoid hitting context window limits unexpectedly.
+</div>
+
+<h2>What Is Temperature?</h2>
+
+<p><strong>Temperature</strong> is one of the most important parameters you can control when working with AI models. It determines how <em>creative</em> or <em>predictable</em> the AI's responses will be.</p>
+
+<h3>How Temperature Works</h3>
+
+<p>When an AI model generates text, it doesn't just pick the single most likely next word. Instead, it assigns a <strong>probability</strong> to every possible next word. Temperature controls how the model uses these probabilities:</p>
+
+<ul>
+  <li><strong>Low temperature (0.0 – 0.3):</strong> The model strongly favors the most likely words. Responses are more <em>deterministic</em>, focused, and predictable. Great for factual answers, code generation, and structured tasks.</li>
+  <li><strong>Medium temperature (0.4 – 0.7):</strong> A balanced mix of likely and less likely words. Responses are somewhat creative but still coherent. Good for general conversation and explanations.</li>
+  <li><strong>High temperature (0.8 – 2.0):</strong> The model is more willing to pick less likely words. Responses are more <em>creative</em>, diverse, and sometimes surprising. Useful for brainstorming, storytelling, and idea generation.</li>
+</ul>
+
+<div class="callout callout-warn">
+  <strong>⚠️ Warning:</strong> Setting temperature to 0 doesn't guarantee the exact same output every time in all implementations. Some models may still have slight variations due to internal processing. For truly deterministic results, you may also need to set a fixed <strong>seed</strong> value.
+</div>
+
+<h3>Temperature in Practice</h3>
+
+<p>Here's how you set the temperature parameter when making an API call:</p>
+
+<pre><code>from openai import OpenAI
+
+client = OpenAI()
+
+# Low temperature — focused and deterministic
+response_focused = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "Explain what a variable is in Python."}
+    ],
+    temperature=0.1
+)
+print("Low temperature response:")
+print(response_focused.choices[0].message.content)
+
+# High temperature — creative and varied
+response_creative = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "Explain what a variable is in Python."}
+    ],
+    temperature=1.5
+)
+print("\nHigh temperature response:")
+print(response_creative.choices[0].message.content)
+</code></pre>
+
+<p>Try running this code and compare the two responses. You'll notice the low-temperature version is more straightforward and factual, while the high-temperature version might use more varied language, metaphors, or examples.</p>
+
+<h3>Temperature Comparison Table</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Temperature Range</th>
+      <th>Behavior</th>
+      <th>Best Used For</th>
+      <th>Example Use Case</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0.0 – 0.3</td>
+      <td>Deterministic, focused</td>
+      <td>Factual Q&amp;A, code, data extraction</td>
+      <td>"Write a function that sorts a list"</td>
+    </tr>
+    <tr>
+      <td>0.4 – 0.7</td>
+      <td>Balanced</td>
+      <td>General conversation, explanations</td>
+      <td>"Explain how photosynthesis works"</td>
+    </tr>
+    <tr>
+      <td>0.8 – 1.2</td>
+      <td>Creative, diverse</td>
+      <td>Brainstorming, writing, ideation</td>
+      <td>"Give me 10 creative names for a coffee shop"</td>
+    </tr>
+    <tr>
+      <td>1.3 – 2.0</td>
+      <td>Very random, experimental</td>
+      <td>Artistic exploration, wild ideas</td>
+      <td>"Write a poem about a robot learning to paint"</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Other Important Parameters</h2>
+
+<p>Temperature isn't the only parameter that shapes AI behavior. Let's look at several other key parameters you'll encounter when working with AI agents.</p>
+
+<h3>max_tokens</h3>
+
+<p>The <code>max_tokens</code> parameter sets the <strong>maximum length</strong> of the AI's response. This is crucial for controlling costs and preventing overly long outputs.</p>
+
+<pre><code>response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "Write a short summary of Python."}
+    ],
+    max_tokens=50  # Limit response to approximately 50 tokens
+)
+print(response.choices[0].message.content)
+</code></pre>
+
+<div class="callout callout-info">
+  <strong>💡 Note:</strong> <code>max_tokens</code> limits the <em>output</em> only. Your input tokens are counted separately. The total of input + output tokens must still fit within the model's context window.
+</div>
+
+<h3>top_p (Nucleus Sampling)</h3>
+
+<p><code>top_p</code> is an alternative to temperature for controlling randomness. Instead of adjusting the probability distribution, it tells the model to only consider the top words whose cumulative probability adds up to <code>p</code>.</p>
+
+<ul>
+  <li><strong>top_p = 0.1:</strong> Only consider the top 10% most likely words (very focused)</li>
+  <li><strong>top_p = 0.9:</strong> Consider a broad range of words (more diverse)</li>
+  <li><strong>top_p = 1.0:</strong> Consider all words (maximum diversity)</li>
+</ul>
+
+<pre><code>response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "Suggest a fun weekend activity."}
+    ],
+    top_p=0.3  # Only pick from the most likely options
+)
+print(response.choices[0].message.content)
+</code></pre>
+
+<div class="callout callout-tip">
+  <strong>🔧 Pro Tip:</strong> It's generally recommended to adjust <em>either</em> temperature <em>or</em> top_p, but not both at the same time. Adjusting both can lead to unpredictable behavior. Pick one and stick with it.
+</div>
+
+<h3>frequency_penalty and presence_penalty</h3>
+
+<p>These two parameters help control <strong>repetition</strong> in AI responses:</p>
+
+<ul>
+  <li><strong>frequency_penalty</strong> (range: -2.0 to 2.0): Penalizes words that have already appeared <em>frequently</em> in the text. Higher values reduce repeated phrases and words.</li>
+  <li><strong>presence_penalty</strong> (range: -2.0 to 2.0): Penalizes words that have appeared <em>at all</em> in the text. Higher values encourage the model to introduce new topics and ideas.</li>
+</ul>
+
+<pre><code>response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "Write a paragraph about the benefits of exercise."}
+    ],
+    frequency_penalty=1.0,   # Reduce repeated words
+    presence_penalty=0.5     # Encourage new ideas
+)
+print(response.choices[0].message.content)
+</code></pre>
+
+<h3>stop</h3>
+
+<p>The <code>stop</code> parameter lets you define <strong>stop sequences</strong> — strings that, when generated, cause the AI to stop producing text. This is useful for controlling the format of responses.</p>
+
+<pre><code>response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "List three programming languages."}
+    ],
+    stop=["4.", "\n\n"]  # Stop if the model tries to add a 4th item
+)
+print(response.choices[0].message.content)
+</code></pre>
+
+<h2>Putting It All Together</h2>
+
+<p>Here's a complete example that combines all the parameters we've discussed:</p>
+
+<pre><code>from openai import OpenAI
+
+client = OpenAI()
+
+def ask_ai(question, temperature=0.7, max_tokens=200, top_p=1.0,
+           frequency_penalty=0.0, presence_penalty=0.0):
+    """
+    Ask the AI a question with full control over generation parameters.
+    """
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a helpful programming tutor."},
+            {"role": "user", "content": question}
+        ],
+        temperature=temperature,
+        max_tokens=max_tokens,
+        top_p=top_p,
+        frequency_penalty=frequency_penalty,
+        presence_penalty=presence_penalty
+    )
+
+    # Count tokens used
+    usage = response.usage
+    print(f"--- Token Usage ---")
+    print(f"Prompt tokens: {usage.prompt_tokens}")
+    print(f"Completion tokens: {usage.completion_tokens}")
+    print(f"Total tokens: {usage.total_tokens}")
+    print(f"--- Response ---")
+
+    return response.choices[0].message.content
+
+# Example: Factual question with low temperature
+answer = ask_ai(
+    "What is the difference between a list and a tuple in Python?",
+    temperature=0.2,
+    max_tokens=150
+)
+print(answer)
+</code></pre>
+
+<h2>Exercise</h2>
+
+<div class="exercise">
+  <div class="exercise-header">🧪 Exercise: Experiment with Temperature</div>
+  <div class="exercise-body">
+    <p>Write a Python script that asks the AI the same question three times with three different temperature settings (0.1, 0.7, and 1.5). Print each response side by side and observe how the tone, word choice, and creativity change.</p>
+    <p><strong>Your question:</strong> "Describe a sunset over the ocean."</p>
+    <p><strong>Requirements:</strong></p>
+    <ul>
+      <li>Use a loop to iterate over the three temperature values</li>
+      <li>Print the temperature value before each response</li>
+      <li>Set <code>max_tokens</code> to 100 to keep responses manageable</li>
+      <li>Add a blank line between responses for readability</li>
+    </ul>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+<pre><code>from openai import OpenAI
+
+client = OpenAI()
+
+question = "Describe a sunset over the ocean."
+temperatures = [0.1, 0.7, 1.5]
+
+for temp in temperatures:
+    print(f"=== Temperature: {temp} ===")
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "user", "content": question}
+        ],
+        temperature=temp,
+        max_tokens=100
+    )
+    print(response.choices[0].message.content)
+    print()  # Blank line for readability
+</code></pre>
+    <p>When you run this, you should notice that the <strong>0.1</strong> response is concise and factual, the <strong>0.7</strong> response is balanced and descriptive, and the <strong>1.5</strong> response is more poetic and imaginative.</p>
+  </div>
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+  <li><strong>Tokens</strong> are the basic units of text that AI models process. Understanding tokens helps you manage costs and stay within model limits.</li>
+  <li><strong>Temperature</strong> controls the randomness of AI output. Use low values (0.0–0.3) for factual tasks and high values (0.8–1.5) for creative tasks.</li>
+  <li><strong>max_tokens</strong> limits the length of the AI's response, helping you control costs and output size.</li>
+  <li><strong>top_p</strong> is an alternative to temperature for controlling output diversity through nucleus sampling.</li>
+  <li><strong>frequency_penalty</strong> and <strong>presence_penalty</strong> help reduce repetition and encourage variety in responses.</li>
+  <li><strong>stop</strong> sequences let you define where the AI should stop generating text.</li>
+  <li>Adjust <em>either</em> temperature <em>or</em> top_p — avoid changing both simultaneously for predictable results.</li>
+  <li>Always monitor your <strong>token usage</strong> to stay within budget and context window limits.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> We'll explore how to give AI agents <strong>memory</strong> — the ability to remember context across multiple interactions. You'll learn about conversation history, context windows, and techniques for building agents that can maintain coherent, long-running conversations with users.</p>
+
+  <div class="lesson-nav">
+    <a href="0203.html" class="btn btn-secondary">&larr; Previous: Understanding Messages & Roles</a>
+    <a href="0205.html" class="btn btn-secondary">Next: Building a Conversational Agent &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-2-4">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(2, 4)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 2;
+const CURRENT_LESSON = 4;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>

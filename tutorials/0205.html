@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Conversational Agent — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-2-5">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-1">Phase 1</a> / Day 2, Lesson 5</div>
+    <div class="lesson-number">Day 2, Lesson 5 of 5</div>
+    <h1 class="lesson-title">Building a Conversational Agent</h1>
+    <p class="lesson-desc">Learn about building a conversational agent.</p>
+  </div>
+
+<h2>Introduction to Conversational Agents</h2>
+<p>A conversational agent is a program that can understand and respond to human input in a natural, interactive way. Unlike simple programs that follow fixed rules, conversational agents use AI to interpret user messages and generate meaningful replies. In this lesson, we'll explore how to build a basic conversational agent using Python.</p>
+
+<h2>How Conversational Agents Work</h2>
+<p>At their core, conversational agents follow a simple loop:</p>
+<ul>
+  <li><strong>Listen:</strong> Receive user input (text or voice).</li>
+  <li><strong>Understand:</strong> Process the input to determine intent.</li>
+  <li><strong>Respond:</strong> Generate and deliver a relevant reply.</li>
+</ul>
+<p>This process repeats continuously, allowing for back-and-forth dialogue.</p>
+
+<div class="callout callout-info">
+  <p><strong>Note:</strong> Early conversational agents relied on rule-based systems with predefined responses. Modern agents use machine learning models to handle more complex and varied conversations.</p>
+</div>
+
+<h2>Setting Up Your First Conversational Agent</h2>
+<p>Let's build a simple text-based agent using Python. This example uses basic string matching to simulate understanding.</p>
+
+<h3>Step 1: Define a Response Dictionary</h3>
+<p>We'll map user inputs to predefined responses.</p>
+<pre><code>responses = {
+    "hello": "Hi there! How can I help you today?",
+    "how are you": "I'm just a program, but I'm functioning well!",
+    "bye": "Goodbye! Have a great day!",
+    "default": "I'm not sure how to respond to that."
+}</code></pre>
+
+<h3>Step 2: Create the Conversation Loop</h3>
+<p>We'll use a while loop to keep the conversation going until the user types "quit".</p>
+<pre><code>def simple_agent():
+    print("Agent: Hello! I'm your friendly AI assistant.")
+    while True:
+        user_input = input("You: ").lower()
+        if user_input == "quit":
+            print("Agent: Goodbye!")
+            break
+        response = responses.get(user_input, responses["default"])
+        print(f"Agent: {response}")
+
+# Start the agent
+simple_agent()</code></pre>
+
+<div class="callout callout-tip">
+  <p><strong>Tip:</strong> Using <code>.lower()</code> ensures that "Hello" and "hello" are treated the same way. This improves user experience.</p>
+</div>
+
+<h2>Enhancing Understanding with Keywords</h3>
+<p>Simple dictionary lookups only work for exact matches. To handle variations like "Hi" or "Hey", we can use keyword detection.</p>
+<pre><code>def enhanced_agent():
+    print("Agent: Hi! Ask me anything.")
+    while True:
+        user_input = input("You: ").lower()
+        if "hello" in user_input or "hi" in user_input:
+            print("Agent: Hello! How can I assist?")
+        elif "weather" in user_input:
+            print("Agent: I don't have real-time data, but it's always sunny in the digital world!")
+        elif user_input == "quit":
+            print("Agent: See you later!")
+            break
+        else:
+            print("Agent: Interesting! Tell me more.")
+
+enhanced_agent()</code></pre>
+
+<h2>Comparing Approaches to Conversational Agents</h2>
+<p>Different methods offer varying levels of sophistication:</p>
+<table>
+  <thead>
+    <tr>
+      <th>Approach</th>
+      <th>Pros</th>
+      <th>Cons</th>
+      <th>Best For</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Rule-Based (if/else)</td>
+      <td>Simple, predictable</td>
+      <td>Rigid, limited flexibility</td>
+      <td>Basic chatbots</td>
+    </tr>
+    <tr>
+      <td>Keyword Matching</td>
+      <td>Handles variations</td>
+      <td>Still limited understanding</td>
+      <td>FAQ bots</td>
+    </tr>
+    <tr>
+      <td>ML/NLP Models</td>
+      <td>Understands context</td>
+      <td>Requires training data</td>
+      <td>Advanced agents</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-warn">
+  <p><strong>Warning:</strong> Rule-based systems can frustrate users if they don't cover enough cases. Always include a fallback response for unrecognized input.</p>
+</div>
+
+<h2>Practice Exercise: Build a Greeting Agent</h2>
+<p>Create a conversational agent that responds to greetings and farewells. It should recognize at least three variations of each.</p>
+
+<div class="exercise">
+  <div class="exercise-header">Exercise: Greeting Agent</div>
+  <div class="exercise-body">
+    <p>Write a Python function that:</p>
+    <ul>
+      <li>Responds to greetings like "hello", "hi", "hey"</li>
+      <li>Responds to farewells like "bye", "goodbye", "see you"</li>
+      <li>Uses a loop to keep the conversation going</li>
+      <li>Ends when the user types "exit"</li>
+    </ul>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+    <pre><code>def greeting_agent():
+    greetings = ["hello", "hi", "hey"]
+    farewells = ["bye", "goodbye", "see you"]
+    print("Agent: Hi! Say hello or goodbye.")
+    while True:
+        user_input = input("You: ").lower()
+        if user_input == "exit":
+            print("Agent: Bye!")
+            break
+        elif user_input in greetings:
+            print("Agent: Hello! Nice to meet you.")
+        elif user_input in farewells:
+            print("Agent: Farewell! Take care.")
+        else:
+            print("Agent: I only understand greetings and farewells for now.")
+
+greeting_agent()</code></pre>
+  </div>
+</div>
+
+<h2>Key Takeaways</h2>
+<ul>
+  <li>Conversational agents simulate dialogue by listening, understanding, and responding.</li>
+  <li>Simple agents use rule-based logic or keyword matching.</li>
+  <li>Using <code>.lower()</code> helps handle case variations.</li>
+  <li>Always include a default response for unknown inputs.</li>
+  <li>More advanced agents use machine learning for better understanding.</li>
+</ul>
+
+<p>In the next lesson, we'll explore how to integrate natural language processing (NLP) libraries like NLTK to improve our agent's understanding of user input.</p>
+
+  <div class="lesson-nav">
+    <a href="0204.html" class="btn btn-secondary">&larr; Previous: Temperature, Tokens & Parameters</a>
+    <a href="0301.html" class="btn btn-secondary">Next: Day 3, Lesson 1 &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-2-5">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(2, 5)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 2;
+const CURRENT_LESSON = 5;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
