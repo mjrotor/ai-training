@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Content Pipeline — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-7-4">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-1">Phase 1</a> / Day 7, Lesson 4</div>
+    <div class="lesson-number">Day 7, Lesson 4 of 5</div>
+    <h1 class="lesson-title">Building a Content Pipeline</h1>
+    <p class="lesson-desc">Learn about building a content pipeline.</p>
+  </div>
+
+<h2>What Is a Content Pipeline?</h2>
+<p>A content pipeline is a series of automated steps that take raw input (like a topic or keyword) and transform it through multiple stages to produce a finished piece of content. Think of it like an assembly line in a factory — each station adds something new until the final product is complete.</p>
+<p>In the world of AI agents, a content pipeline chains together multiple AI-powered steps: research, outlining, drafting, editing, and publishing. Each step can be handled by a specialized agent or tool, and the output of one step becomes the input for the next.</p>
+
+<h2>Why Use a Content Pipeline?</h2>
+<p>Building a content pipeline with AI agents gives you several powerful advantages:</p>
+<ul>
+  <li><strong>Consistency:</strong> Every piece of content follows the same structured process, ensuring uniform quality.</li>
+  <li><strong>Speed:</strong> What used to take hours of manual work can be completed in minutes.</li>
+  <li><strong>Scalability:</strong> Once your pipeline is built, you can generate dozens or hundreds of content pieces without proportional increases in effort.</li>
+  <li><strong>Specialization:</strong> Each agent in the pipeline can be fine-tuned for its specific task, producing better results than a single general-purpose agent.</li>
+</ul>
+
+<div class="callout callout-info">
+  <strong>💡 Did you know?</strong> Many professional content teams already use pipeline-style workflows manually. An AI-powered pipeline simply automates and accelerates each stage.
+</div>
+
+<h2>The Anatomy of a Content Pipeline</h2>
+<p>Every content pipeline has a few core components. Let's break them down:</p>
+
+<h3>1. Input Stage</h3>
+<p>This is where the pipeline begins. The input could be a topic, a keyword, a URL, a set of notes, or even a voice recording. The input stage is responsible for collecting and normalizing this raw material so downstream agents can work with it.</p>
+
+<h3>2. Research &amp; Planning Stage</h3>
+<p>An AI agent gathers relevant information, identifies key points, and creates a structured outline. This stage ensures the content is well-informed and logically organized before any writing begins.</p>
+
+<h3>3. Drafting Stage</h3>
+<p>Using the outline and research from the previous stage, a drafting agent generates the first version of the content. This draft doesn't need to be perfect — it just needs to capture the core ideas.</p>
+
+<h3>4. Review &amp; Editing Stage</h3>
+<p>A separate editing agent (or the same agent with different instructions) reviews the draft for clarity, tone, grammar, and accuracy. It can also check for factual consistency against the research gathered earlier.</p>
+
+<h3>5. Output &amp; Publishing Stage</h3>
+<p>The final polished content is formatted and delivered — whether that means saving it to a file, posting it to a CMS, sending it via email, or publishing it to a blog.</p>
+
+<h2>Pipeline Architectures: Linear vs. Branching</h2>
+<p>Not all pipelines are simple straight lines. Here's a comparison of the two most common architectures:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Linear Pipeline</th>
+      <th>Branching Pipeline</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Structure</strong></td>
+      <td>A → B → C → D (sequential)</td>
+      <td>Multiple paths based on conditions</td>
+    </tr>
+    <tr>
+      <td><strong>Complexity</strong></td>
+      <td>Simple to build and debug</td>
+      <td>More complex but more flexible</td>
+    </tr>
+    <tr>
+      <td><strong>Best For</strong></td>
+      <td>Repetitive, predictable content</td>
+      <td>Content that varies by type or audience</td>
+    </tr>
+    <tr>
+      <td><strong>Example</strong></td>
+      <td>Blog post: research → outline → draft → edit</td>
+      <td>Content hub: route to blog, social, or video script based on topic</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-tip">
+  <strong>🚀 Tip:</strong> Start with a linear pipeline for your first project. Once you're comfortable, experiment with branching logic to handle different content types.
+</div>
+
+<h2>Building Your First Pipeline in Python</h2>
+<p>Let's build a simple three-stage content pipeline: <strong>Research → Draft → Edit</strong>. We'll use Python functions to represent each stage, and we'll simulate AI agent calls with placeholder logic that you can later replace with real API calls.</p>
+
+<h3>Step 1: Define the Pipeline Stages</h3>
+<p>Each stage is a function that takes input, processes it, and returns output. Here's the skeleton of our pipeline:</p>
+
+<pre><code>def research_stage(topic):
+    """Simulates an AI agent that researches a topic."""
+    print(f"[Research Agent] Gathering information on: {topic}")
+    research_notes = {
+        "topic": topic,
+        "key_points": [
+            f"Key point 1 about {topic}",
+            f"Key point 2 about {topic}",
+            f"Key point 3 about {topic}"
+        ],
+        "sources": ["Source A", "Source B"]
+    }
+    return research_notes
+
+
+def drafting_stage(research_notes):
+    """Simulates an AI agent that drafts content from research."""
+    print(f"[Drafting Agent] Creating draft for: {research_notes['topic']}")
+    draft = f"# {research_notes['topic']}\n\n"
+    for i, point in enumerate(research_notes["key_points"], 1):
+        draft += f"## Section {i}\n{point}\n\n"
+    draft += f"\n*Sources: {', '.join(research_notes['sources'])}*"
+    return draft
+
+
+def editing_stage(draft):
+    """Simulates an AI agent that edits and polishes the draft."""
+    print("[Editing Agent] Reviewing and polishing the draft...")
+    edited = draft.replace("Key point", "Important insight")
+    edited += "\n\n---\n*Edited and reviewed by AI Editor*"
+    return edited</code></pre>
+
+<h3>Step 2: Chain the Stages Together</h3>
+<p>Now we create a pipeline function that runs each stage in sequence, passing the output of one stage as input to the next:</p>
+
+<pre><code>def run_content_pipeline(topic):
+    """Runs the full content pipeline for a given topic."""
+    print(f"=== Starting Content Pipeline ===")
+    print(f"Topic: {topic}\n")
+
+    # Stage 1: Research
+    research = research_stage(topic)
+    print(f"Research complete. Found {len(research['key_points'])} key points.\n")
+
+    # Stage 2: Drafting
+    draft = drafting_stage(research)
+    print(f"Draft complete. {len(draft)} characters generated.\n")
+
+    # Stage 3: Editing
+    final_content = editing_stage(draft)
+    print("Editing complete.\n")
+
+    print("=== Pipeline Finished ===")
+    return final_content
+
+
+# Run the pipeline
+result = run_content_pipeline("The Future of Renewable Energy")
+print("\n--- FINAL OUTPUT ---\n")
+print(result)</code></pre>
+
+<div class="callout callout-warn">
+  <strong>⚠️ Note:</strong> In a real-world pipeline, each stage would call an actual AI API (like OpenAI, Anthropic, or a local model). The functions above use simulated responses so you can understand the structure before integrating real AI calls.
+</div>
+
+<h3>Step 3: Adding Error Handling</h3>
+<p>Real pipelines need to handle failures gracefully. If one stage fails, you want the pipeline to report the error rather than crashing silently:</p>
+
+<pre><code>def run_pipeline_safe(topic):
+    """Runs the pipeline with basic error handling."""
+    try:
+        research = research_stage(topic)
+        if not research or not research.get("key_points"):
+            raise ValueError("Research stage returned no results.")
+
+        draft = drafting_stage(research)
+        if not draft or len(draft) < 50:
+            raise ValueError("Draft stage produced insufficient content.")
+
+        final = editing_stage(draft)
+        return final
+
+    except ValueError as e:
+        print(f"Pipeline error: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error in pipeline: {e}")
+        return None
+
+
+# Test with error handling
+output = run_pipeline_safe("Machine Learning in Healthcare")
+if output:
+    print("Pipeline succeeded!")
+    print(output)
+else:
+    print("Pipeline failed. Check the logs above.")</code></pre>
+
+<h2>Connecting Real AI Agents to Your Pipeline</h2>
+<p>Once you understand the pipeline structure, replacing the simulated functions with real AI API calls is straightforward. Here's an example of how the research stage might look when connected to a real language model:</p>
+
+<pre><code>import os
+
+def research_stage_real(topic):
+    """Research stage using a real AI API call."""
+    # This example uses a generic API pattern.
+    # Adapt the endpoint and payload to your chosen provider.
+
+    api_key = os.environ.get("AI_API_KEY")
+    if not api_key:
+        raise EnvironmentError("AI_API_KEY not set in environment variables.")
+
+    prompt = f"""You are a research assistant. Research the topic: {topic}
+Provide a JSON response with:
+- "key_points": a list of 3-5 key points about the topic
+- "sources": a list of 2-3 credible source names
+
+Respond with valid JSON only."""
+
+    # Simulated API call structure:
+    # response = call_ai_api(prompt=prompt, api_key=api_key)
+    # return response
+
+    # For now, return a placeholder:
+    return {
+        "topic": topic,
+        "key_points": ["Point A", "Point B", "Point C"],
+        "sources": ["Research Source 1", "Research Source 2"]
+    }</code></pre>
+
+<div class="callout callout-info">
+  <strong>💡 Remember:</strong> Always store API keys in environment variables, never directly in your code. Use a library like <code>python-dotenv</code> to manage them during development.
+</div>
+
+<h2>Managing Pipeline State</h2>
+<p>As your pipelines grow more complex, you'll want to track the state of each run — what input was used, what each stage produced, and whether any errors occurred. A simple state dictionary works well for this:</p>
+
+<pre><code>def run_pipeline_with_state(topic):
+    """Runs the pipeline and tracks state at each stage."""
+    pipeline_state = {
+        "input": topic,
+        "stages": {},
+        "status": "started",
+        "errors": []
+    }
+
+    try:
+        # Research
+        research = research_stage(topic)
+        pipeline_state["stages"]["research"] = {
+            "output": research,
+            "status": "complete"
+        }
+
+        # Drafting
+        draft = drafting_stage(research)
+        pipeline_state["stages"]["drafting"] = {
+            "output": draft,
+            "status": "complete"
+        }
+
+        # Editing
+        final = editing_stage(draft)
+        pipeline_state["stages"]["editing"] = {
+            "output": final,
+            "status": "complete"
+        }
+
+        pipeline_state["status"] = "complete"
+        pipeline_state["final_output"] = final
+
+    except Exception as e:
+        pipeline_state["status"] = "failed"
+        pipeline_state["errors"].append(str(e))
+
+    return pipeline_state
+
+
+# Run and inspect state
+state = run_pipeline_with_state("Sustainable Urban Planning")
+print(f"Pipeline status: {state['status']}")
+for stage_name, stage_data in state["stages"].items():
+    print(f"  {stage_name}: {stage_data['status']}")
+if state["errors"]:
+    print(f"Errors: {state['errors']}")</code></pre>
+
+<h2>Exercise: Build a Two-Stage Pipeline</h2>
+<div class="exercise">
+  <div class="exercise-header">Exercise</div>
+  <div class="exercise-body">
+    <p>Create a simplified two-stage content pipeline with the following requirements:</p>
+    <ol>
+      <li>Write a <code>summarize_stage(text)</code> function that takes a long text string and returns a summary (for now, just return the first 100 characters followed by "...").</li>
+      <li>Write a <code>headline_stage(summary)</code> function that takes the summary and returns a headline string (for now, return "Summary: " followed by the first 30 characters of the summary).</li>
+      <li>Write a <code>run_two_stage_pipeline(text)</code> function that chains these two stages together and returns the final headline.</li>
+      <li>Test your pipeline with a sample text of at least 200 characters.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+<pre><code>def summarize_stage(text):
+    """Stage 1: Summarize the input text."""
+    if len(text) > 100:
+        return text[:100] + "..."
+    return text
+
+
+def headline_stage(summary):
+    """Stage 2: Generate a headline from the summary."""
+    return "Summary: " + summary[:30]
+
+
+def run_two_stage_pipeline(text):
+    """Chains summarize and headline stages."""
+    summary = summarize_stage(text)
+    headline = headline_stage(summary)
+    return headline
+
+
+# Test with sample text
+sample_text = (
+    "Artificial intelligence is transforming the way we work, "
+    "communicate, and solve problems. From healthcare diagnostics "
+    "to autonomous vehicles, AI systems are becoming an integral "
+    "part of our daily lives. Understanding how these systems "
+    "work is essential for the next generation of technologists."
+)
+
+result = run_two_stage_pipeline(sample_text)
+print(result)
+# Output: Summary: Artificial intelligence is transforming the way we</code></pre>
+  </div>
+</div>
+
+<h2>Key Takeaways</h2>
+<ul>
+  <li>A <strong>content pipeline</strong> is a sequence of automated stages that transform raw input into finished content.</li>
+  <li>The five core stages are: <strong>Input → Research → Drafting → Editing → Output</strong>.</li>
+  <li><strong>Linear pipelines</strong> are simple and sequential; <strong>branching pipelines</strong> route content through different paths based on conditions.</li>
+  <li>Each pipeline stage can be represented as a Python function, making it easy to test, debug, and swap components.</li>
+  <li>Always include <strong>error handling</strong> so your pipeline fails gracefully when a stage encounters a problem.</li>
+  <li>Track <strong>pipeline state</strong> to monitor what happened at each stage — this is essential for debugging and auditing.</li>
+  <li>Start with simulated functions to understand the structure, then replace them with real AI API calls when you're ready.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> we'll explore how to add <strong>conditional logic and branching</strong> to your pipelines, so your agents can make decisions about which path content should take based on its type, quality, or intended audience.</p>
+
+  <div class="lesson-nav">
+    <a href="0703.html" class="btn btn-secondary">&larr; Previous: Conditional Chains</a>
+    <a href="0705.html" class="btn btn-secondary">Next: Debugging Chains &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-7-4">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(7, 4)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 7;
+const CURRENT_LESSON = 4;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
