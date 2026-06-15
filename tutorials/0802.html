@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retry Patterns — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-8-2">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-1">Phase 1</a> / Day 8, Lesson 2</div>
+    <div class="lesson-number">Day 8, Lesson 2 of 5</div>
+    <h1 class="lesson-title">Retry Patterns</h1>
+    <p class="lesson-desc">Learn about retry patterns.</p>
+  </div>
+
+<h2>Understanding Retry Patterns in AI Agents</h2>
+
+<p>When building AI agents, things don't always go as planned. Network requests fail, APIs return errors, and models sometimes produce unexpected outputs. <strong>Retry patterns</strong> are strategies that help your agent handle these failures gracefully by automatically attempting an operation again when it fails.</p>
+
+<p>Think of it like this: if you call a friend and they don't answer, you might try again in a few minutes. Retry patterns do the same thing for your code — they give your agent a second (or third, or fourth) chance to succeed.</p>
+
+<h2>Why Do We Need Retry Patterns?</h2>
+
+<p>AI agents interact with many external systems:</p>
+<ul>
+  <li>Language model APIs (like OpenAI, Anthropic, etc.)</li>
+  <li>Web scraping and HTTP requests</li>
+  <li>Database connections</li>
+  <li>File system operations</li>
+</ul>
+
+<p>Any of these can fail temporarily due to:</p>
+<ul>
+  <li><strong>Rate limiting</strong> — the API says "too many requests, try again later"</li>
+  <li><strong>Network issues</strong> — a brief connection drop</li>
+  <li><strong>Server errors</strong> — the service is temporarily unavailable</li>
+  <li><strong>Timeouts</strong> — the request took too long</li>
+</ul>
+
+<div class="callout callout-info">
+  <strong>💡 Key Insight:</strong> Most failures in distributed systems are <em>temporary</em>. A well-designed retry pattern can turn a failed operation into a successful one without any human intervention.
+</div>
+
+<h2>Basic Retry: The Simple Loop</h2>
+
+<p>The simplest retry pattern is a loop that tries an operation multiple times before giving up:</p>
+
+<pre><code>import time
+import random
+
+def call_api_with_retry(prompt, max_retries=3):
+    """Call an API with basic retry logic."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"Attempt {attempt} of {max_retries}...")
+            # Simulate an API call that might fail
+            if random.random() < 0.6:  # 60% chance of failure
+                raise ConnectionError("API temporarily unavailable")
+            return "Success! Here is your response."
+        except ConnectionError as e:
+            print(f"  Failed: {e}")
+            if attempt == max_retries:
+                print("  All retries exhausted. Giving up.")
+                raise
+            print("  Retrying...")
+
+# Try it out
+try:
+    result = call_api_with_retry("Hello, world!")
+    print(f"Result: {result}")
+except ConnectionError:
+    print("Operation failed after all retries.")</code></pre>
+
+<p>This works, but it has a problem: it retries <em>immediately</em> after each failure. If the API is overwhelmed, hammering it with instant retries can make things worse!</p>
+
+<h2>Exponential Backoff</h2>
+
+<p><strong>Exponential backoff</strong> is a strategy where you wait longer and longer between each retry. This gives the failing service time to recover.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Attempt</th>
+      <th>Wait Time (base=1s)</th>
+      <th>Total Elapsed</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>0s (immediate)</td>
+      <td>0s</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>1s</td>
+      <td>1s</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>2s</td>
+      <td>3s</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>4s</td>
+      <td>7s</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>8s</td>
+      <td>15s</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The formula is simple: <code>wait_time = base_delay × 2^(attempt - 1)</code></p>
+
+<pre><code>import time
+import random
+
+def call_api_with_backoff(prompt, max_retries=5, base_delay=1.0):
+    """Call an API with exponential backoff."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"Attempt {attempt} of {max_retries}...")
+            # Simulate an API call
+            if random.random() < 0.5:
+                raise ConnectionError("API temporarily unavailable")
+            return "Success! Here is your response."
+        except ConnectionError as e:
+            print(f"  Failed: {e}")
+            if attempt == max_retries:
+                print("  All retries exhausted.")
+                raise
+            # Calculate wait time with exponential backoff
+            wait_time = base_delay * (2 ** (attempt - 1))
+            print(f"  Waiting {wait_time:.1f}s before retrying...")
+            time.sleep(wait_time)
+
+# Try it out
+try:
+    result = call_api_with_backoff("Hello, world!")
+    print(f"Result: {result}")
+except ConnectionError:
+    print("Operation failed after all retries.")</code></pre>
+
+<div class="callout callout-tip">
+  <strong>🌟 Pro Tip:</strong> Always add a small random "jitter" to your wait times. If many clients retry at exactly the same time, they can create a "thundering herd" that overwhelms the server again. Adding randomness spreads out the retries.
+</div>
+
+<h3>Adding Jitter</h3>
+
+<pre><code>import time
+import random
+
+def call_api_with_backoff_and_jitter(prompt, max_retries=5, base_delay=1.0):
+    """Call an API with exponential backoff and jitter."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"Attempt {attempt} of {max_retries}...")
+            if random.random() < 0.5:
+                raise ConnectionError("API temporarily unavailable")
+            return "Success! Here is your response."
+        except ConnectionError as e:
+            print(f"  Failed: {e}")
+            if attempt == max_retries:
+                print("  All retries exhausted.")
+                raise
+            # Exponential backoff with jitter
+            wait_time = base_delay * (2 ** (attempt - 1))
+            jitter = random.uniform(0, wait_time * 0.5)  # Up to 50% jitter
+            total_wait = wait_time + jitter
+            print(f"  Waiting {total_wait:.2f}s (base: {wait_time:.1f}s + jitter: {jitter:.2f}s)...")
+            time.sleep(total_wait)</code></pre>
+
+<h2>Retrying Only on Specific Errors</h2>
+
+<p>Not all errors should trigger a retry. If you send invalid data to an API, retrying won't help — you'll just get the same error again. You should only retry on <em>transient</em> (temporary) errors.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Error Type</th>
+      <th>Retry?</th>
+      <th>Reason</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>ConnectionError</code></td>
+      <td>✅ Yes</td>
+      <td>Network issues are usually temporary</td>
+    </tr>
+    <tr>
+      <td><code>TimeoutError</code></td>
+      <td>✅ Yes</td>
+      <td>Server might recover after a moment</td>
+    </tr>
+    <tr>
+      <td><code>HTTP 429</code> (Rate Limited)</td>
+      <td>✅ Yes</td>
+      <td>Wait and try again</td>
+    </tr>
+    <tr>
+      <td><code>HTTP 500</code> (Server Error)</td>
+      <td>✅ Yes</td>
+      <td>Server-side issue, may resolve</td>
+    </tr>
+    <tr>
+      <td><code>HTTP 400</code> (Bad Request)</td>
+      <td>❌ No</td>
+      <td>Your request is invalid — fix the code</td>
+    </tr>
+    <tr>
+      <td><code>HTTP 401</code> (Unauthorized)</td>
+      <td>❌ No</td>
+      <td>Your credentials are wrong — fix them</td>
+    </tr>
+    <tr>
+      <td><code>HTTP 404</code> (Not Found)</td>
+      <td>❌ No</td>
+      <td>The resource doesn't exist</td>
+    </tr>
+  </tbody>
+</table>
+
+<pre><code>import time
+import random
+
+class APIError(Exception):
+    """Custom exception with status code."""
+    def __init__(self, message, status_code):
+        super().__init__(message)
+        self.status_code = status_code
+
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+
+def call_api_smart_retry(prompt, max_retries=3, base_delay=1.0):
+    """Only retry on transient errors."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"Attempt {attempt} of {max_retries}...")
+            # Simulate different types of errors
+            error_roll = random.random()
+            if error_roll < 0.2:
+                raise APIError("Rate limited", 429)  # Retryable
+            elif error_roll < 0.4:
+                raise APIError("Server error", 500)  # Retryable
+            elif error_roll < 0.5:
+                raise APIError("Bad request", 400)   # NOT retryable
+            return "Success!"
+        except APIError as e:
+            print(f"  Error {e.status_code}: {e}")
+            # Don't retry on non-retryable errors
+            if e.status_code not in RETRYABLE_STATUS_CODES:
+                print(f"  Non-retryable error. Stopping immediately.")
+                raise
+            if attempt == max_retries:
+                print("  All retries exhausted.")
+                raise
+            wait_time = base_delay * (2 ** (attempt - 1))
+            jitter = random.uniform(0, wait_time * 0.5)
+            print(f"  Retryable error. Waiting {wait_time + jitter:.2f}s...")
+            time.sleep(wait_time + jitter)</code></pre>
+
+<div class="callout callout-warn">
+  <strong>⚠️ Warning:</strong> Never retry non-idempotent operations without caution. If an operation charges a credit card or sends an email, retrying could result in duplicate charges or duplicate messages. Always check if an operation is safe to repeat!
+</div>
+
+<h2>Building a Reusable Retry Decorator</h2>
+
+<p>Instead of writing retry logic inside every function, you can create a <strong>decorator</strong> that adds retry behavior to any function:</p>
+
+<pre><code>import time
+import random
+from functools import wraps
+
+def retry(max_retries=3, base_delay=1.0, retryable_exceptions=(Exception,)):
+    """A reusable retry decorator with exponential backoff and jitter."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(1, max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except retryable_exceptions as e:
+                    last_exception = e
+                    if attempt == max_retries:
+                        print(f"  [{func.__name__}] All {max_retries} retries exhausted.")
+                        raise
+                    wait_time = base_delay * (2 ** (attempt - 1))
+                    jitter = random.uniform(0, wait_time * 0.5)
+                    print(f"  [{func.__name__}] Attempt {attempt} failed: {e}")
+                    print(f"  [{func.__name__}] Retrying in {wait_time + jitter:.2f}s...")
+                    time.sleep(wait_time + jitter)
+            raise last_exception
+        return wrapper
+    return decorator
+
+# Now you can add retry logic to ANY function with a simple decorator!
+
+@retry(max_retries=4, base_delay=0.5, retryable_exceptions=(ConnectionError, TimeoutError))
+def fetch_data(url):
+    """Simulate fetching data from a URL."""
+    print(f"Fetching {url}...")
+    if random.random() < 0.6:
+        raise ConnectionError("Connection refused")
+    return f"Data from {url}"
+
+@retry(max_retries=3, base_delay=1.0, retryable_exceptions=(ValueError,))
+def parse_response(text):
+    """Simulate parsing a response."""
+    print(f"Parsing: {text}")
+    if random.random() < 0.5:
+        raise ValueError("Malformed response")
+    return {"parsed": text.upper()}
+
+# Use them!
+try:
+    data = fetch_data("https://api.example.com/data")
+    print(f"Got: {data}")
+except ConnectionError:
+    print("Could not fetch data after all retries.")
+
+try:
+    parsed = parse_response("hello world")
+    print(f"Parsed: {parsed}")
+except ValueError:
+    print("Could not parse response after all retries.")</code></pre>
+
+<h2>Retry Patterns in AI Agent Workflows</h2>
+
+<p>In a real AI agent, retry patterns are essential at multiple points:</p>
+
+<ol>
+  <li><strong>LLM API calls</strong> — The model provider might be rate-limited or temporarily down</li>
+  <li><strong>Tool execution</strong> — External tools (search, calculators, databases) can fail</li>
+  <li><strong>Output parsing</strong> — The model's response might not be in the expected format</li>
+  <li><strong>Validation</strong> — Generated code might have syntax errors that need re-generation</li>
+</ol>
+
+<pre><code>import time
+import random
+
+class AIAgent:
+    """A simple AI agent with retry patterns at every step."""
+    
+    def __init__(self):
+        self.max_retries = 3
+        self.base_delay = 1.0
+    
+    def _backoff_wait(self, attempt):
+        """Wait with exponential backoff and jitter."""
+        wait = self.base_delay * (2 ** (attempt - 1))
+        jitter = random.uniform(0, wait * 0.5)
+        time.sleep(wait + jitter)
+    
+    def call_llm(self, prompt):
+        """Call the language model with retries."""
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                print(f"  [LLM] Attempt {attempt}...")
+                # Simulate LLM call
+                if random.random() < 0.4:
+                    raise ConnectionError("LLM API unavailable")
+                return f"Response to: {prompt}"
+            except ConnectionError as e:
+                print(f"  [LLM] Failed: {e}")
+                if attempt == self.max_retries:
+                    raise
+                self._backoff_wait(attempt)
+    
+    def use_tool(self, tool_name, input_data):
+        """Use a tool with retries."""
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                print(f"  [Tool: {tool_name}] Attempt {attempt}...")
+                # Simulate tool execution
+                if random.random() < 0.3:
+                    raise RuntimeError(f"{tool_name} crashed")
+                return f"{tool_name} result for: {input_data}"
+            except RuntimeError as e:
+                print(f"  [Tool: {tool_name}] Failed: {e}")
+                if attempt == self.max_retries:
+                    raise
+                self._backoff_wait(attempt)
+    
+    def run(self, user_input):
+        """Run the agent with full retry protection."""
+        print(f"\n🤖 Agent processing: '{user_input}'")
+        print("=" * 50)
+        
+        # Step 1: Call LLM
+        print("\n📡 Step 1: Calling LLM...")
+        llm_response = self.call_llm(user_input)
+        print(f"  ✅ LLM responded: {llm_response}")
+        
+        # Step 2: Use a tool
+        print("\n🔧 Step 2: Using search tool...")
+        tool_result = self.use_tool("search", llm_response)
+        print(f"  ✅ Tool returned: {tool_result}")
+        
+        # Step 3: Generate final answer
+        print("\n📝 Step 3: Generating final answer...")
+        final_answer = f"Based on {tool_result}, here is my answer."
+        print(f"  ✅ Done!")
+        
+        return final_answer
+
+# Run the agent
+agent = AIAgent()
+try:
+    answer = agent.run("What is the weather today?")
+    print(f"\n🎉 Final Answer: {answer}")
+except Exception as e:
+    print(f"\n❌ Agent failed: {e}")</code></pre>
+
+<div class="callout callout-info">
+  <strong>💡 Design Principle:</strong> Each step in your agent's workflow should have its own retry logic. This way, if the LLM call succeeds but the tool fails, you don't waste the LLM call — you only retry the tool.
+</div>
+
+<h2>Common Retry Strategies Compared</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Description</th>
+      <th>Best For</th>
+      <th>Downside</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Immediate Retry</strong></td>
+      <td>Retry right away, no delay</td>
+      <td>Very rare, fast-recovering errors</td>
+      <td>Can overwhelm the service</td>
+    </tr>
+    <tr>
+      <td><strong>Fixed Delay</strong></td>
+      <td>Wait the same amount between retries</td>
+      <td>Predictable recovery times</td>
+      <td>May wait too long or not long enough</td>
+    </tr>
+    <tr>
+      <td><strong>Exponential Backoff</strong></td>
+      <td>Double the wait time each attempt</td>
+      <td>Most network/API failures</td>
+      <td>Can take a long time for many retries</td>
+    </tr>
+    <tr>
+      <td><strong>Exponential + Jitter</strong></td>
+      <td>Backoff with random variation</td>
+      <td>Distributed systems with many clients</td>
+      <td>Slightly more complex to implement</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-tip">
+  <strong>🌟 Best Practice:</strong> For AI agents, use <strong>exponential backoff with jitter</strong> as your default strategy. It handles the widest range of failure scenarios and plays nicely with shared APIs.
+</div>
+
+<h2>Circuit Breaker: When to Stop Trying</h2>
+
+<p>Sometimes, retrying over and over just wastes resources. A <strong>circuit breaker</strong> pattern stops retries after a threshold and "opens the circuit" — meaning no more requests are sent for a cooldown period.</p>
+
+<pre><code>import time
+import random
+
+class CircuitBreaker:
+    """Stop retrying when failures exceed a threshold."""
+    
+    CLOSED = "CLOSED"      # Normal operation
+    OPEN = "OPEN"          # Blocking all requests
+    HALF_OPEN = "HALF_OPEN"  # Testing if service recovered
+    
+    def __init__(self, failure_threshold=5, recovery_timeout=30):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self.state = self.CLOSED
+        self.failure_count = 0
+        self.last_failure_time = None
+    
+    def can_execute(self):
+        """Check if a request should be allowed."""
+        if self.state == self.CLOSED:
+            return True
+        elif self.state == self.OPEN:
+            # Check if recovery timeout has passed
+            if time.time() - self.last_failure_time >= self.recovery_timeout:
+                print("  [CircuitBreaker] Timeout passed. Trying HALF_OPEN...")
+                self.state = self.HALF_OPEN
+                return True
+            print("  [CircuitBreaker] Circuit is OPEN. Request blocked.")
+            return False
+        elif self.state == self.HALF_OPEN:
+            return True  # Allow one test request
+    
+    def record_success(self):
+        """Record a successful request."""
+        self.failure_count = 0
+        if self.state == self.HALF_OPEN:
+            print("  [CircuitBreaker] Recovery confirmed! Circuit CLOSED.")
+        self.state = self.CLOSED
+    
+    def record_failure(self):
+        """Record a failed request."""
+        self.failure_count += 1
+        self.last_failure_time = time.time()
+        print(f"  [CircuitBreaker] Failure {self.failure_count}/{self.failure_threshold}")
+        if self.failure_count >= self.failure_threshold:
+            print("  [CircuitBreaker] Threshold reached! Circuit OPEN.")
+            self.state = self.OPEN
+
+# Example usage
+breaker = CircuitBreaker(failure_threshold=3, recovery_timeout=5)
+
+@retry(max_retries=2, base_delay=0.1, retryable_exceptions=(ConnectionError,))
+def api_call_with_circuit_breaker(url):
+    """Make an API call protected by a circuit breaker."""
+    if not breaker.can_execute():
+        raise ConnectionError("Circuit breaker is OPEN")
+    
+    print(f"  Calling {url}...")
+    if random.random() < 0.7:
+        breaker.record_failure()
+        raise ConnectionError("API failed")
+    
+    breaker.record_success()
+    return f"Data from {url}"
+
+# Simulate multiple requests
+for i in range(10):
+    print(f"\n--- Request {i+1} ---")
+    try:
+        result = api_call_with_circuit_breaker("https://api.example.com")
+        print(f"  ✅ {result}")
+    except ConnectionError as e:
+        print(f"  ❌ {e}")
+    time.sleep(0.5)</code></pre>
+
+<div class="callout callout-warn">
+  <strong>⚠️ Important:</strong> Circuit breakers are essential for production AI agents. Without them, a failing service can cause your agent to hang indefinitely, wasting compute and blocking users.
+</div>
+
+<h2>Practical Guidelines for AI Agents</h2>
+
+<ol>
+  <li><strong>Set reasonable retry limits:</strong> 3–5 retries is usually enough. If it doesn't work by then, it likely won't.</li>
+  <li><strong>Use exponential backoff with jitter:</strong> This is the gold standard for most scenarios.</li>
+  <li><strong>Only retry transient errors:</strong> Don't retry authentication errors, validation errors, or "not found" errors.</li>
+  <li><strong>Log every retry:</strong> When debugging agent failures, retry logs are invaluable.</li>
+  <li><strong>Set a maximum total timeout:</strong> Don't let retries go on forever. Cap the total time spent retrying.</li>
+  <li><strong>Use circuit breakers for external services:</strong> Protect your agent from getting stuck on a broken dependency.</li>
+  <li><strong>Make retries configurable:</strong> Different tools and APIs may need different retry settings.</li>
+</ol>
+
+<div class="exercise">
+  <div class="exercise-header">🧪 Exercise: Build a Resilient API Client</div>
+  <div class="exercise-body">
+    <p>Create a function <code>resilient_api_call()</code> that combines all the retry patterns you've learned:</p>
+    <ul>
+      <li>Accepts a URL and optional <code>max_retries</code> parameter (default: 4)</li>
+      <li>Uses exponential backoff with jitter (base delay: 0.5s)</li>
+      <li>Only retries on <code>ConnectionError</code> and <code>TimeoutError</code></li>
+      <li>Logs each attempt with its number and wait time</li>
+      <li>Returns the result on success, or raises the last exception after all retries</li>
+    </ul>
+    <p>Then write a second function <code>agent_workflow()</code> that calls <code>resilient_api_call()</code> three times in sequence (simulating a 3-step agent workflow), where each step depends on the previous step's output.</p>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+<pre><code>import time
+import random
+from functools import wraps
+
+def resilient_api_call(url, max_retries=4):
+    """
+    Make an API call with exponential backoff, jitter,
+    and selective retry on transient errors only.
+    """
+    base_delay = 0.5
+    last_exception = None
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"  [API] Attempt {max_retries} for {url}...")
+            # Simulate API behavior
+            roll = random.random()
+            if roll < 0.3:
+                raise ConnectionError(f"Cannot connect to {url}")
+            elif roll < 0.5:
+                raise TimeoutError(f"Request to {url} timed out")
+            elif roll < 0.55:
+                raise ValueError("Invalid request format")  # NOT retryable
+            
+            result = f"Data from {url}"
+            print(f"  [API] ✅ Success on attempt {attempt}")
+            return result
+            
+        except (ConnectionError, TimeoutError) as e:
+            last_exception = e
+            print(f"  [API] ⚠️ Transient error: {e}")
+            
+            if attempt == max_retries:
+                print(f"  [API] ❌ All {max_retries} retries exhausted for {url}")
+                raise
+            
+            wait_time = base_delay * (2 ** (attempt - 1))
+            jitter = random.uniform(0, wait_time * 0.5)
+            total_wait = wait_time + jitter
+            print(f"  [API] Waiting {total_wait:.2f}s before retry...")
+            time.sleep(total_wait)
+            
+        except ValueError as e:
+            # Non-retryable error — fail immediately
+            print(f"  [API] ❌ Non-retryable error: {e}")
+            raise
+    
+    raise last_exception
+
+
+def agent_workflow(start_url):
+    """
+    A 3-step agent workflow where each step depends on the previous.
+    Each step uses resilient retry logic.
+    """
+    print(f"\n🤖 Starting agent workflow with: {start_url}")
+    print("=" * 55)
+    
+    # Step 1: Fetch initial data
+    print("\n📡 Step 1: Fetching initial data...")
+    data = resilient_api_call(start_url)
+    
+    # Step 2: Process the data (depends on step 1)
+    print(f"\n🔧 Step 2: Processing '{data}'...")
+    processed = resilient_api_call(f"process.api/transform?input={data}")
+    
+    # Step 3: Store the result (depends on step 2)
+    print(f"\n💾 Step 3: Storing '{processed}'...")
+    confirmation = resilient_api_call(f"store.api/save?result={processed}")
+    
+    print(f"\n🎉 Workflow complete! Confirmation: {confirmation}")
+    return confirmation
+
+
+# Run the workflow
+try:
+    agent_workflow("https://api.example.com/start")
+except Exception as e:
+    print(f"\n💥 Workflow failed: {e}")</code></pre>
+  </div>
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+  <li><strong>Retry patterns</strong> automatically re-attempt failed operations, making AI agents more resilient to temporary failures.</li>
+  <li><strong>Exponential backoff</strong> progressively increases wait times between retries, giving services time to recover.</li>
+  <li><strong>Jitter</strong> adds randomness to wait times, preventing many clients from retrying simultaneously (the "thundering herd" problem).</li>
+  <li><strong>Only retry transient errors</strong> like connection failures and timeouts — never retry logic errors like bad requests or authentication failures.</li>
+  <li><strong>Circuit breakers</strong> stop all requests to a failing service after a threshold, preventing resource waste and enabling recovery.</li>
+  <li><strong>Decorators</strong> let you add retry logic to any function cleanly and reusable, keeping your agent code clean.</li>
+  <li>In AI agent workflows, apply retry logic <strong>at each independent step</strong> so that a failure in one step doesn't waste the work of previous steps.</li>
+  <li>Always <strong>log retries</strong> and set <strong>reasonable limits</strong> (3–5 retries, with a maximum total timeout) to prevent infinite loops.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> we'll explore <strong>error handling and fallback strategies</strong> — what to do when retries aren't enough and your agent needs a completely different approach to accomplish its goal.</p>
+
+  <div class="lesson-nav">
+    <a href="0801.html" class="btn btn-secondary">&larr; Previous: Types of Agent Failures</a>
+    <a href="0803.html" class="btn btn-secondary">Next: Fallback Strategies &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-8-2">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(8, 2)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 8;
+const CURRENT_LESSON = 2;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
