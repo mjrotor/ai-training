@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory & Context — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-10-4">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-1">Phase 1</a> / Day 10, Lesson 4</div>
+    <div class="lesson-number">Day 10, Lesson 4 of 5</div>
+    <h1 class="lesson-title">Memory & Context</h1>
+    <p class="lesson-desc">Learn about memory & context.</p>
+  </div>
+
+<h2>What Is Memory in AI Agents?</h2>
+
+<p>Imagine you're having a conversation with a friend. They remember what you said five minutes ago, last week, and even last year. That's memory — and it's what makes conversations feel natural and continuous.</p>
+
+<p>AI agents, by default, are like someone with short-term amnesia. Every time you send a new message, the agent has no idea what you talked about before. That's where <strong>memory</strong> comes in. Memory is the mechanism that allows an AI agent to store, retrieve, and use information from past interactions.</p>
+
+<p>Without memory, an AI agent can't:</p>
+<ul>
+<li>Remember your name or preferences from a previous conversation</li>
+<li>Build on earlier steps in a multi-step task</li>
+<li>Maintain context across a long document analysis</li>
+<li>Learn from past mistakes or successful strategies</li>
+</ul>
+
+<div class="callout callout-info">
+<strong>💡 Key Concept:</strong> Memory in AI agents is not the same as the model's training data. Training data is fixed and baked into the model. Memory is dynamic — it's information the agent collects and references <em>during</em> a specific session or across sessions.
+</div>
+
+<h2>Types of Memory</h2>
+
+<p>Not all memory is the same. AI agents use different types of memory depending on what they need to remember and for how long. Let's break down the main types.</p>
+
+<h3>Short-Term Memory (Working Memory)</h3>
+
+<p>Short-term memory is like a notepad the agent uses during a single conversation. It holds the most recent messages, the current task details, and any immediate context the agent needs to respond coherently.</p>
+
+<p>This is the simplest form of memory — it's essentially the conversation history that gets passed along with each new request.</p>
+
+<pre><code># Example: Short-term memory as a conversation history
+conversation_history = [
+    {"role": "user", "content": "My name is Alex."},
+    {"role": "assistant", "content": "Nice to meet you, Alex!"},
+    {"role": "user", "content": "What's my name?"},
+    # The agent can answer correctly because the history is included
+]
+
+# When making a new request, we include the full history
+response = agent.chat(
+    message="What's my name?",
+    history=conversation_history
+)
+# The agent sees "My name is Alex" in the history and responds correctly
+</code></pre>
+
+<h3>Long-Term Memory</h3>
+
+<p>Long-term memory is like a filing cabinet. The agent stores important facts, user preferences, and learned patterns that persist across multiple sessions. This is what allows an AI agent to "remember" you from one conversation to the next.</p>
+
+<pre><code># Example: Storing and retrieving long-term memory
+memory_store = {}
+
+# After a conversation, the agent saves key facts
+def save_memory(user_id, key, value):
+    if user_id not in memory_store:
+        memory_store[user_id] = {}
+    memory_store[user_id][key] = value
+
+# Later, the agent retrieves stored facts
+def get_memory(user_id, key):
+    return memory_store.get(user_id, {}).get(key, None)
+
+# Usage
+save_memory("user_123", "name", "Alex")
+save_memory("user_123", "preferred_language", "Python")
+
+# In a future session:
+name = get_memory("user_123", "name")
+print(f"Welcome back, {name}!")  # "Welcome back, Alex!"
+</code></pre>
+
+<h3>Episodic Memory</h3>
+
+<p>Episodic memory stores specific events or experiences — like a diary. The agent remembers <em>what happened</em> in past interactions, not just abstract facts. This helps the agent learn from experience and avoid repeating mistakes.</p>
+
+<h3>Semantic Memory</h3>
+
+<p>Semantic memory stores general knowledge and facts — like a textbook. It's the agent's understanding of concepts, relationships, and rules that apply broadly, not tied to any specific event.</p>
+
+<table>
+<thead>
+<tr>
+<th>Memory Type</th>
+<th>Analogy</th>
+<th>Duration</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Short-Term</td>
+<td>Notepad</td>
+<td>Current session</td>
+<td>"What did I just say?"</td>
+</tr>
+<tr>
+<td>Long-Term</td>
+<td>Filing cabinet</td>
+<td>Across sessions</td>
+<td>"Alex prefers Python"</td>
+</tr>
+<tr>
+<td>Episodic</td>
+<td>Diary</td>
+<td>Across sessions</td>
+<td>"Last time we tried X, it failed"</td>
+</tr>
+<tr>
+<td>Semantic</td>
+<td>Textbook</td>
+<td>Persistent</td>
+<td>"Python uses indentation for blocks"</td>
+</tr>
+</tbody>
+</table>
+
+<h2>Context Windows: The Agent's Attention Span</h2>
+
+<p>Every AI model has a <strong>context window</strong> — the maximum amount of text it can process in a single request. Think of it as the agent's attention span. If the conversation exceeds this limit, the oldest messages get cut off, and the agent "forgets" them.</p>
+
+<div class="callout callout-warn">
+<strong>⚠️ Important:</strong> Context windows are measured in <strong>tokens</strong> (roughly ¾ of a word). A model with a 128K token context window can process about 96,000 words at once. Long conversations, large documents, and extensive memory can quickly fill this space.
+</div>
+
+<p>Here's why context windows matter for memory:</p>
+<ol>
+<li><strong>Conversation history eats into the context window.</strong> Every past message you include takes up space.</li>
+<li><strong>System prompts and instructions also count.</strong> Your agent's personality, rules, and tools all consume tokens.</li>
+<li><strong>When the window is full, something has to go.</strong> Usually, the oldest messages are dropped first.</li>
+</ol>
+
+<pre><code># Example: Managing context window limits
+MAX_CONTEXT_TOKENS = 8000  # Our model's limit
+SYSTEM_PROMPT_TOKENS = 500  # Reserved for instructions
+RESPONSE_TOKENS = 1000  # Reserved for the agent's reply
+
+# Available space for conversation history:
+available = MAX_CONTEXT_TOKENS - SYSTEM_PROMPT_TOKENS - RESPONSE_TOKENS
+print(f"Available for history: {available} tokens")
+# Output: Available for history: 6500 tokens
+
+# Strategy: Keep only the most recent messages that fit
+def trim_history(messages, max_tokens):
+    """Keep recent messages that fit within the token budget."""
+    total_tokens = 0
+    kept_messages = []
+    
+    # Iterate from newest to oldest
+    for msg in reversed(messages):
+        msg_tokens = estimate_tokens(msg["content"])
+        if total_tokens + msg_tokens <= max_tokens:
+            kept_messages.insert(0, msg)
+            total_tokens += msg_tokens
+        else:
+            break  # Stop when we run out of space
+    
+    return kept_messages
+
+def estimate_tokens(text):
+    """Rough estimate: ~4 characters per token."""
+    return len(text) // 4
+</code></pre>
+
+<h2>Memory Management Strategies</h2>
+
+<p>Since context windows are finite, smart agents need strategies to manage what they remember. Here are the most common approaches.</p>
+
+<h3>Sliding Window</h3>
+
+<p>The simplest strategy: keep only the <em>N</em> most recent messages. Older messages are simply discarded. It's easy to implement but can lose important early context.</p>
+
+<h3>Summarization</h3>
+
+<p>Instead of keeping every message, the agent periodically summarizes older conversation into a compact summary. This preserves the key information while freeing up space.</p>
+
+<pre><code># Example: Summarization-based memory management
+def summarize_and_compress(messages, summary_model):
+    """
+    When conversation gets too long, summarize older messages
+    into a compact form and keep recent messages intact.
+    """
+    if len(messages) <= 10:
+        return messages  # No compression needed yet
+    
+    # Split: summarize the older half, keep the recent half
+    midpoint = len(messages) // 2
+    older_messages = messages[:midpoint]
+    recent_messages = messages[midpoint:]
+    
+    # Create a summary of older messages
+    summary_text = "\n".join(
+        f"{m['role']}: {m['content']}" for m in older_messages
+    )
+    summary = summary_model.summarize(
+        f"Summarize this conversation:\n{summary_text}"
+    )
+    
+    # Return: summary + recent messages
+    return [
+        {"role": "system", "content": f"Previous conversation summary: {summary}"},
+        *recent_messages
+    ]
+</code></pre>
+
+<h3>Selective Memory</h3>
+
+<p>The agent decides what's worth remembering. Important facts, decisions, and user preferences are stored; small talk and redundant information are discarded.</p>
+
+<div class="callout callout-tip">
+<strong>💡 Pro Tip:</strong> In practice, most production AI agents use a <strong>combination</strong> of these strategies. They might use a sliding window for recent messages, summarization for older context, and a separate long-term memory store for important facts.
+</div>
+
+<h2>Implementing a Simple Memory System</h2>
+
+<p>Let's build a basic memory system for an AI agent from scratch. This will tie together everything we've learned.</p>
+
+<pre><code>class SimpleAgentMemory:
+    """A basic memory system for an AI agent."""
+    
+    def __init__(self, max_history=20):
+        self.conversation_history = []  # Short-term memory
+        self.long_term_facts = {}       # Long-term memory
+        self.max_history = max_history
+    
+    def add_message(self, role, content):
+        """Add a new message to conversation history."""
+        self.conversation_history.append({
+            "role": role,
+            "content": content
+        })
+        
+        # Enforce sliding window limit
+        if len(self.conversation_history) > self.max_history:
+            self.conversation_history = self.conversation_history[-self.max_history:]
+    
+    def remember_fact(self, key, value):
+        """Store a fact in long-term memory."""
+        self.long_term_facts[key] = value
+        print(f"Remembered: {key} = {value}")
+    
+    def recall_fact(self, key):
+        """Retrieve a fact from long-term memory."""
+        return self.long_term_facts.get(key, None)
+    
+    def get_context(self):
+        """Build the full context for the next agent request."""
+        context = []
+        
+        # Add long-term facts as a system message
+        if self.long_term_facts:
+            facts = "\n".join(
+                f"- {k}: {v}" for k, v in self.long_term_facts.items()
+            )
+            context.append({
+                "role": "system",
+                "content": f"Remember these facts:\n{facts}"
+            })
+        
+        # Add conversation history
+        context.extend(self.conversation_history)
+        
+        return context
+    
+    def display_memory(self):
+        """Show what the agent currently remembers."""
+        print("=== Agent Memory ===")
+        print(f"\nLong-term facts ({len(self.long_term_facts)}):")
+        for key, value in self.long_term_facts.items():
+            print(f"  • {key}: {value}")
+        print(f"\nRecent messages ({len(self.conversation_history)}):")
+        for msg in self.conversation_history[-3:]:
+            print(f"  [{msg['role']}]: {msg['content'][:50]}...")
+
+
+# --- Using the memory system ---
+agent_mem = SimpleAgentMemory(max_history=10)
+
+# Simulate a conversation
+agent_mem.add_message("user", "Hi, I'm Sarah and I love hiking.")
+agent_mem.add_message("assistant", "Great to meet you, Sarah! Hiking is wonderful.")
+
+# Agent extracts and stores a fact
+agent_mem.remember_fact("user_name", "Sarah")
+agent_mem.remember_fact("user_hobby", "hiking")
+
+# Later in the conversation
+agent_mem.add_message("user", "What should I do this weekend?")
+
+# Build context for the AI model
+context = agent_mem.get_context()
+print("\nContext sent to AI model:")
+for msg in context:
+    print(f"  [{msg['role']}]: {msg['content'][:60]}")
+</code></pre>
+
+<h2>Memory and Context in Multi-Step Tasks</h2>
+
+<p>Memory becomes especially critical when an agent is working on a multi-step task. Imagine an agent that needs to research a topic, draft a report, and then revise it. Each step depends on the results of the previous one.</p>
+
+<pre><code># Example: Multi-step task with memory
+def research_agent(task, memory):
+    """An agent that performs research in steps, using memory."""
+    
+    # Step 1: Plan the research
+    memory.add_message("user", f"Plan research for: {task}")
+    plan = ai_model.generate(
+        context=memory.get_context()
+    )
+    memory.add_message("assistant", plan)
+    memory.remember_fact("research_plan", plan)
+    
+    # Step 2: Execute each research step
+    steps = parse_steps(plan)
+    results = []
+    
+    for i, step in enumerate(steps):
+        memory.add_message("user", f"Execute step {i+1}: {step}")
+        result = ai_model.generate(
+            context=memory.get_context()
+        )
+        memory.add_message("assistant", result)
+        results.append(result)
+        memory.remember_fact(f"step_{i+1}_result", result)
+    
+    # Step 3: Synthesize findings
+    memory.add_message("user", "Synthesize all findings into a report.")
+    report = ai_model.generate(
+        context=memory.get_context()
+    )
+    memory.add_message("assistant", report)
+    
+    return report
+</code></pre>
+
+<div class="callout callout-info">
+<strong>💡 Why This Matters:</strong> Without memory, the agent would start each step from scratch, forgetting what it planned and what it already discovered. Memory turns a series of disconnected requests into a coherent, multi-step workflow.
+</div>
+
+<div class="exercise">
+<div class="exercise-header">🧩 Exercise: Build a Memory-Aware Agent</div>
+<div class="exercise-body">
+<p>You're building a customer support agent that needs to remember the customer's issue across multiple messages. Complete the <code>SupportAgent</code> class below by implementing the <code>handle_message</code> method. The agent should:</p>
+<ol>
+<li>Store the customer's name when they introduce themselves</li>
+<li>Track the issue category (billing, technical, general)</li>
+<li>Include relevant memory when generating responses</li>
+</ol>
+<pre><code>class SupportAgent:
+    def __init__(self):
+        self.memory = {
+            "customer_name": None,
+            "issue_category": None,
+            "messages": []
+        }
+    
+    def handle_message(self, user_message):
+        """Process a user message and return a response."""
+        # TODO: Implement this method
+        # 1. Extract name if user says "My name is X" or "I'm X"
+        # 2. Detect issue category from keywords
+        #    - "charge", "bill", "payment" → "billing"
+        #    - "error", "bug", "not working" → "technical"
+        #    - otherwise → "general"
+        # 3. Store the message in history
+        # 4. Build context from memory and return a response
+        
+        pass  # Replace with your implementation
+
+# Test it:
+agent = SupportAgent()
+print(agent.handle_message("Hi, I'm Jordan"))
+print(agent.handle_message("I have a billing question about a charge"))
+print(agent.handle_message("Can you help me?"))
+</code></pre>
+</div>
+</div>
+
+<div class="answer-reveal">
+<button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+<div class="answer-content" id="answer-1">
+<pre><code>import re
+
+class SupportAgent:
+    def __init__(self):
+        self.memory = {
+            "customer_name": None,
+            "issue_category": None,
+            "messages": []
+        }
+    
+    def handle_message(self, user_message):
+        # 1. Extract name
+        name_match = re.search(
+            r"(?:my name is|i'm|i am)\s+(\w+)",
+            user_message, re.IGNORECASE
+        )
+        if name_match:
+            self.memory["customer_name"] = name_match.group(1)
+        
+        # 2. Detect issue category
+        msg_lower = user_message.lower()
+        if any(word in msg_lower for word in ["charge", "bill", "payment", "invoice"]):
+            self.memory["issue_category"] = "billing"
+        elif any(word in msg_lower for word in ["error", "bug", "not working", "crash"]):
+            self.memory["issue_category"] = "technical"
+        elif self.memory["issue_category"] is None:
+            self.memory["issue_category"] = "general"
+        
+        # 3. Store message
+        self.memory["messages"].append({
+            "role": "user", "content": user_message
+        })
+        
+        # 4. Build response using memory
+        name = self.memory["customer_name"]
+        category = self.memory["issue_category"]
+        
+        greeting = f"Hi {name}! " if name else "Hello! "
+        
+        if category == "billing":
+            response = greeting + "I'll connect you with our billing department."
+        elif category == "technical":
+            response = greeting + "Let me help you troubleshoot that technical issue."
+        else:
+            response = greeting + "How can I assist you today?"
+        
+        self.memory["messages"].append({
+            "role": "assistant", "content": response
+        })
+        
+        return response
+
+# Test it:
+agent = SupportAgent()
+print(agent.handle_message("Hi, I'm Jordan"))
+# Output: "Hi Jordan! How can I assist you today?"
+
+print(agent.handle_message("I have a billing question about a charge"))
+# Output: "Hi Jordan! I'll connect you with our billing department."
+
+print(agent.handle_message("Can you help me?"))
+# Output: "Hi Jordan! I'll connect you with our billing department."
+</code></pre>
+</div>
+</div>
+
+<h2>Common Pitfalls with Memory</h2>
+
+<p>As you start building memory into your agents, watch out for these common mistakes:</p>
+
+<ul>
+<li><strong>Memory bloat:</strong> Storing everything without filtering. Your context window fills up with irrelevant details, and the agent's responses become slower and less focused.</li>
+<li><strong>Forgetting to update memory:</strong> The agent stores a fact once but never updates it when circumstances change. "User prefers email" becomes outdated when the user switches to preferring chat.</li>
+<li><strong>Over-relying on conversation history:</strong> Simply passing the entire chat history isn't true memory. It's expensive, limited by context windows, and doesn't scale.</li>
+<li><strong>Not handling memory conflicts:</strong> What happens when the user says "Actually, my name is Sam" after previously saying "I'm Alex"? Your memory system needs conflict resolution.</li>
+</ul>
+
+<div class="callout callout-warn">
+<strong>⚠️ Watch Out:</strong> Always consider the <strong>cost</strong> of memory. More memory means more tokens per request, which means higher API costs and slower responses. Be intentional about what you store.
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+<li><strong>Memory is what makes AI agents conversational.</strong> Without it, every interaction starts from zero.</li>
+<li><strong>There are multiple types of memory:</strong> short-term (conversation history), long-term (stored facts), episodic (past events), and semantic (general knowledge).</li>
+<li><strong>Context windows are finite.</strong> Every token of memory competes with every token of your prompt and the model's response.</li>
+<li><strong>Use memory management strategies</strong> like sliding windows, summarization, and selective storage to stay within context limits.</li>
+<li><strong>Multi-step tasks depend on memory</strong> to maintain coherence across planning, execution, and synthesis phases.</li>
+<li><strong>Keep memory intentional.</strong> Store what matters, update when things change, and always be mindful of token costs.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> we'll explore how AI agents use <strong>tools and function calling</strong> to take actions in the real world — from searching the web to sending emails and querying databases. Memory gives agents context; tools give them capability. Together, they're what make agents truly powerful.</p>
+
+  <div class="lesson-nav">
+    <a href="1003.html" class="btn btn-secondary">&larr; Previous: Adding Calendar & Email Tools</a>
+    <a href="1005.html" class="btn btn-secondary">Next: Testing Your Assistant &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-10-4">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(10, 4)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 10;
+const CURRENT_LESSON = 4;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
