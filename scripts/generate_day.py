@@ -719,7 +719,7 @@ def git_push(day_num):
     else:
         print(f"Git commit: {result.stderr}")
 
-    result = subprocess.run(['git', 'push', 'origin', 'main'], capture_output=True, text=True)
+    result = subprocess.run(['git', 'push', 'origin', 'master'], capture_output=True, text=True)
     if result.returncode == 0:
         print(f"Git pushed successfully")
     else:
