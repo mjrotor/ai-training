@@ -76,8 +76,8 @@ print(f'Updated generated.json: {len(data[\"lessons\"])} total lessons')
 
     # Git commit and push
     git add -A
-    git commit -m "Generate Day $DAY lessons ($(date +%Y-%m-%d))" 2>/dev/null
-    git push origin main 2>&1 | tail -3
+    git commit -m "Generate Day $DAY lessons 1-5 ($(date +%Y-%m-%d))" 2>/dev/null
+    git push origin master 2>&1 | tail -3
     echo "Git push done"
 else
     echo "ERROR: No lessons generated for Day $DAY, not updating state"

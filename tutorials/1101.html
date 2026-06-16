@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why Agents Need RAG — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-11-1">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-2">Phase 2</a> / Day 11, Lesson 1</div>
+    <div class="lesson-number">Day 11, Lesson 1 of 5</div>
+    <h1 class="lesson-title">Why Agents Need RAG</h1>
+    <p class="lesson-desc">Learn about why agents need rag.</p>
+  </div>
+
+<h2>Why Agents Need RAG</h2>
+
+<p>Welcome to Phase 2! In the first phase, you learned how AI agents perceive their environment and make simple decisions. Now it's time to tackle one of the most important capabilities for building truly useful agents: <strong>Retrieval-Augmented Generation (RAG)</strong>.</p>
+
+<p>Think of it this way: an AI agent without RAG is like a student taking a closed-book exam. It can only answer based on what it memorized during training. An AI agent <em>with</em> RAG is like an open-book exam — it can look up relevant information before answering, leading to far more accurate, up-to-date, and grounded responses.</p>
+
+<h3>What Is RAG?</h3>
+
+<p><strong>Retrieval-Augmented Generation</strong> is a technique where an AI model retrieves relevant documents or data from an external knowledge source <em>before</em> generating its answer. Instead of relying solely on its internal (and potentially outdated) training knowledge, the agent "looks things up" first, then uses that retrieved context to produce a well-informed response.</p>
+
+<p>The RAG pipeline typically involves three key stages:</p>
+
+<ol>
+  <li><strong>Indexing</strong> — Documents are split into chunks and converted into vector embeddings (numerical representations) and stored in a vector database.</li>
+  <li><strong>Retrieval</strong> — When a user asks a question, the system searches the vector database for the most relevant chunks.</li>
+  <li><strong>Generation</strong> — The retrieved chunks are fed to the LLM as context, which then produces a grounded answer.</li>
+</ol>
+
+<div class="callout callout-info">
+  <strong>💡 Did You Know?</strong> RAG was introduced in a 2020 paper by researchers at Facebook AI Research (now Meta AI). It has since become one of the most widely adopted patterns for building production AI applications.
+</div>
+
+<h3>The Problem RAG Solves</h3>
+
+<p>Without RAG, large language models have several critical limitations when used inside agents:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Problem</th>
+      <th>Without RAG</th>
+      <th>With RAG</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Hallucinations</strong></td>
+      <td>Model may fabricate facts confidently</td>
+      <td>Answers grounded in retrieved documents</td>
+    </tr>
+    <tr>
+      <td><strong>Outdated Knowledge</strong></td>
+      <td>Limited to training data cutoff date</td>
+      <td>Can access up-to-date documents</td>
+    </tr>
+    <tr>
+      <td><strong>Domain-Specific Knowledge</strong></td>
+      <td>No access to proprietary/private data</td>
+      <td>Can search company docs, manuals, etc.</td>
+    </tr>
+    <tr>
+      <td><strong>Traceability</strong></td>
+      <td>No source citations</td>
+      <td>Can cite which documents were used</td>
+    </tr>
+    <tr>
+      <td><strong>Token Limits</strong></td>
+      <td>Must fit all context in prompt</td>
+      <td>Only relevant chunks are retrieved</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>How RAG Fits Into the Agent Architecture</h3>
+
+<p>In our agent framework, RAG acts as a <strong>tool</strong> that the agent can call. When the agent determines that a user's question requires external knowledge, it invokes the RAG tool, which searches the knowledge base and returns relevant context. The agent then uses that context to formulate its response.</p>
+
+<pre><code>from openai import OpenAI
+
+client = OpenAI()
+
+def retrieve_context(query: str, vector_store, top_k: int = 3) -> list[str]:
+    """Search the vector store for relevant document chunks."""
+    results = vector_store.similarity_search(query, k=top_k)
+    return [doc.page_content for doc in results]
+
+def ask_with_rag(question: str, vector_store) -> str:
+    """Answer a question using retrieved context."""
+    # Step 1: Retrieve relevant documents
+    context_chunks = retrieve_context(question, vector_store)
+    context_text = "\n\n".join(context_chunks)
+
+    # Step 2: Build a prompt with the retrieved context
+    prompt = f"""Answer the following question based ONLY on the context below.
+If the context doesn't contain enough information, say so.
+
+Context:
+{context_text}
+
+Question: {question}
+Answer:"""
+
+    # Step 3: Generate the answer
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+# Example usage
+answer = ask_with_rag("What is our return policy?", vector_store)
+print(answer)</code></pre>
+
+<div class="callout callout-tip">
+  <strong>🔧 Pro Tip:</strong> The quality of RAG depends heavily on how you chunk your documents. Too large, and you lose precision. Too small, and you lose context. A common starting point is 250–500 word chunks with 10–20% overlap between them.
+</div>
+
+<h3>Building a Simple Vector Store</h3>
+
+<p>To make RAG work, you need a place to store and search your document embeddings. Let's build a minimal vector store using <code>chromadb</code>:</p>
+
+<pre><code>import chromadb
+from chromadb.utils import embedding_functions
+
+# Initialize a persistent ChromaDB client
+chroma_client = chromadb.PersistentClient(path="./my_vector_db")
+
+# Use OpenAI's embedding model (or use a free alternative)
+openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+    api_key="your-api-key",
+    model_name="text-embedding-3-small"
+)
+
+# Create or get a collection
+collection = chroma_client.get_or_create_collection(
+    name="knowledge_base",
+    embedding_function=openai_ef
+)
+
+# Add documents
+documents = [
+    "Our return policy allows returns within 30 days of purchase.",
+    "Free shipping is available for orders over $50.",
+    "Customer support is available Monday through Friday, 9am to 6pm EST.",
+    "We offer a 1-year warranty on all electronic products.",
+    "International shipping takes 7-14 business days."
+]
+
+collection.add(
+    documents=documents,
+    ids=["doc1", "doc2", "doc3", "doc4", "doc5"]
+)
+
+# Query the collection
+results = collection.query(
+    query_texts=["How long do I have to return an item?"],
+    n_results=2
+)
+
+print(results["documents"][0])
+# Output: ['Our return policy allows returns within 30 days of purchase.',
+#          'We offer a 1-year warranty on all electronic products.']</code></pre>
+
+<h3>Chunking Strategies</h3>
+
+<p>Before documents can be embedded and stored, they need to be split into manageable pieces. Here are the most common strategies:</p>
+
+<ul>
+  <li><strong>Fixed-size chunking</strong> — Split text into chunks of N characters with optional overlap. Simple and fast.</li>
+  <li><strong>Recursive chunking</strong> — Split by paragraphs, then sentences, then words. Preserves natural boundaries.</li>
+  <li><strong>Semantic chunking</strong> — Use embeddings to detect topic shifts and split accordingly. Most accurate but slower.</li>
+  <li><strong>Document-specific chunking</strong> — Custom logic for specific formats (e.g., splitting code by functions, Markdown by headers).</li>
+</ul>
+
+<pre><code>from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Create a recursive text splitter
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,        # Each chunk is ~500 characters
+    chunk_overlap=50,      # 50 characters of overlap between chunks
+    length_function=len,
+    separators=["\n\n", "\n", ". ", " ", ""]
+)
+
+long_document = """
+Your long document text goes here. It could be a company handbook,
+a technical manual, a research paper, or any text that needs to
+be broken into smaller pieces for the RAG pipeline.
+"""
+
+chunks = splitter.split_text(long_document)
+
+print(f"Number of chunks: {len(chunks)}")
+for i, chunk in enumerate(chunks):
+    print(f"Chunk {i+1} ({len(chunk)} chars): {chunk[:80]}...")</code></pre>
+
+<div class="callout callout-warn">
+  <strong>⚠️ Watch Out:</strong> Don't set your chunk size too small! If chunks are too short, the embedding model won't have enough context to create meaningful representations, and retrieval quality will drop significantly.
+</div>
+
+<h3>Retrieval Quality: The Make-or-Break Factor</h3>
+
+<p>Having a vector store is only half the battle. The <em>retrieval</em> step determines whether the agent finds the right information. Here are key factors that affect retrieval quality:</p>
+
+<ol>
+  <li><strong>Embedding model quality</strong> — Better embeddings capture semantic meaning more accurately.</li>
+  <li><strong>Query formulation</strong> — Sometimes the user's raw query isn't ideal for retrieval. Consider query rewriting or expansion.</li>
+  <li><strong>Top-K selection</strong> — Retrieving too few results may miss relevant info; too many adds noise.</li>
+  <li><strong>Hybrid search</strong> — Combining vector (semantic) search with keyword (BM25) search often yields the best results.</li>
+</ol>
+
+<pre><code>def hybrid_search(query: str, collection, top_k: int = 5) -> list[str]:
+    """Combine semantic and keyword-style search for better results."""
+    # Semantic search via embeddings
+    semantic_results = collection.query(
+        query_texts=[query],
+        n_results=top_k
+    )
+
+    # For a production system, you'd also run BM25 keyword search
+    # and merge/rerank the results. Here's a simplified version:
+    retrieved_docs = semantic_results["documents"][0]
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_docs = []
+    for doc in retrieved_docs:
+        if doc not in seen:
+            seen.add(doc)
+            unique_docs.append(doc)
+
+    return unique_docs
+
+# Usage
+results = hybrid_search("return policy timeframe", collection)
+for doc in results:
+    print(f"  → {doc}")</code></pre>
+
+<h3>When Should an Agent Use RAG?</h3>
+
+<p>Not every agent interaction requires RAG. Here's a decision framework:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Scenario</th>
+      <th>Use RAG?</th>
+      <th>Reason</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>General conversation</td>
+      <td>❌ No</td>
+      <td>Wastes time and tokens</td>
+    </tr>
+    <tr>
+      <td>Answering company-specific questions</td>
+      <td>✅ Yes</td>
+      <td>Needs internal knowledge</td>
+    </tr>
+    <tr>
+      <td>Current events or news</td>
+      <td>✅ Yes</td>
+      <td>Training data is outdated</td>
+    </tr>
+    <tr>
+      <td>Creative writing</td>
+      <td>❌ No</td>
+      <td>No factual grounding needed</td>
+    </tr>
+    <tr>
+      <td>Technical documentation lookup</td>
+      <td>✅ Yes</td>
+      <td>Precision is critical</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <strong>💡 Agent Design Pattern:</strong> A well-designed agent should <em>decide for itself</em> when to invoke RAG. In the next phase, you'll learn how to train or prompt agents to make this decision autonomously as part of their reasoning loop.
+</div>
+
+<h3>Common Pitfalls and How to Avoid Them</h3>
+
+<p>As you build RAG-powered agents, watch out for these common mistakes:</p>
+
+<ul>
+  <li><strong>Garbage in, garbage out</strong> — If your source documents are poorly formatted or contain errors, RAG won't fix that. Clean your data first.</li>
+  <li><strong>Ignoring metadata</strong> — Tag documents with source, date, and category. This enables filtering and improves retrieval precision.</li>
+  <li><strong>Not evaluating</strong> — Always measure retrieval precision and answer accuracy. Use test queries and expected answers to benchmark your system.</li>
+  <li><strong>Over-relying on RAG</strong> — Some tasks (math, reasoning, code generation) don't benefit from retrieval. Know when to skip it.</li>
+</ul>
+
+<div class="exercise">
+  <div class="exercise-header">🧪 Exercise: Build a RAG-Enhanced Agent Tool</div>
+  <div class="exercise-body">
+    <p>Create a <code>rag_tool</code> function that an agent can call. The function should:</p>
+    <ol>
+      <li>Accept a user query and a list of knowledge base documents (strings).</li>
+      <li>Simple keyword matching: find the document(s) with the most overlapping words with the query.</li>
+      <li>Return the top matching document as context.</li>
+      <li>Handle the case where no document matches (return a helpful message).</li>
+    </ol>
+    <p><em>Bonus: Add a minimum relevance score threshold so low-quality matches are filtered out.</em></p>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+<pre><code>def rag_tool(query: str, documents: list[str], top_k: int = 1,
+              min_score: float = 0.1) -> str:
+    """
+    A simple keyword-based RAG tool for an agent.
+    In production, you'd use embeddings — this is a learning exercise!
+    """
+    query_words = set(query.lower().split())
+
+    scored_docs = []
+    for doc in documents:
+        doc_words = set(doc.lower().split())
+        # Simple Jaccard-like overlap score
+        overlap = len(query_words & doc_words)
+        score = overlap / max(len(query_words), 1)
+        scored_docs.append((score, doc))
+
+    # Sort by score descending
+    scored_docs.sort(key=lambda x: x[0], reverse=True)
+
+    # Filter by minimum threshold
+    relevant = [(s, d) for s, d in scored_docs if s >= min_score]
+
+    if not relevant:
+        return "No relevant documents found in the knowledge base."
+
+    # Return top_k results
+    top_results = relevant[:top_k]
+    context = "\n\n".join(
+        f"[Relevance: {score:.2f}] {doc}"
+        for score, doc in top_results
+    )
+    return context
+
+# Test it
+kb = [
+    "Our return policy allows returns within 30 days.",
+    "Free shipping on orders over $50.",
+    "Warranty covers defects for 1 year from purchase."
+]
+
+print(rag_tool("How long can I return items?", kb))
+# Output: [Relevance: 0.25] Our return policy allows returns within 30 days.
+
+print(rag_tool("What is the weather today?", kb))
+# Output: No relevant documents found in the knowledge base.</code></pre>
+  </div>
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+  <li><strong>RAG = Retrieve + Generate:</strong> The agent looks up relevant documents before answering, leading to more accurate and grounded responses.</li>
+  <li><strong>Three stages:</strong> Indexing (store embeddings), Retrieval (search for relevant chunks), Generation (LLM produces answer with context).</li>
+  <li><strong>Chunking matters:</strong> How you split documents directly impacts retrieval quality. Start with recursive chunking at ~500 chars with overlap.</li>
+  <li><strong>Not always needed:</strong> Agents should intelligently decide when to use RAG — not every query requires external knowledge.</li>
+  <li><strong>Evaluate your system:</strong> Always benchmark retrieval precision and answer quality with test queries.</li>
+  <li><strong>Hybrid search wins:</strong> Combining semantic (vector) search with keyword (BM25) search typically gives the best results.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> We'll go deeper into <em>vector databases and embedding models</em> — you'll learn how to choose the right embedding model, set up a production-grade vector store with ChromaDB or Pinecone, and implement hybrid search for maximum retrieval accuracy. We'll also cover how to handle the "cold start" problem when your knowledge base is empty or small.</p>
+
+  <div class="lesson-nav">
+    <a href="1005.html" class="btn btn-secondary">&larr; Previous: Day 10, Lesson 5</a>
+    <a href="1102.html" class="btn btn-secondary">Next: How RAG Works &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-11-1">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(11, 1)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 11;
+const CURRENT_LESSON = 1;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
