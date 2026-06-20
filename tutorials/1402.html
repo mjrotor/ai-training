@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BM25 Keyword Search — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-14-2">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-2">Phase 2</a> / Day 14, Lesson 2</div>
+    <div class="lesson-number">Day 14, Lesson 2 of 5</div>
+    <h1 class="lesson-title">BM25 Keyword Search</h1>
+    <p class="lesson-desc">Learn about bm25 keyword search.</p>
+  </div>
+
+<h2>What Is BM25 Keyword Search?</h2>
+
+<p>BM25 stands for <strong>Best Matching 25</strong> — it's a ranking function used by search engines and retrieval systems to estimate how relevant a document is to a given search query. It's one of the most widely used algorithms in information retrieval, and it forms the backbone of systems like Elasticsearch and Lucene.</p>
+
+<p>Unlike semantic search (which uses embeddings and vector similarity), BM25 is a <strong>keyword-based</strong> approach. It works by matching exact or partial words in a query against words in a document, then scoring each document based on several statistical factors.</p>
+
+<div class="callout callout-info">
+  <strong>BM25 vs. TF-IDF:</strong> BM25 is essentially an evolution of the classic TF-IDF algorithm. While TF-IDF only considers term frequency and inverse document frequency, BM25 adds document length normalization and saturation controls, making it more robust and accurate in practice.
+</div>
+
+<h2>The BM25 Formula Explained</h2>
+
+<p>The BM25 score for a document <em>D</em> given a query <em>Q</em> containing terms <em>q₁, q₂, ..., qₙ</em> is calculated as:</p>
+
+<pre><code>BM25(D, Q) = Σ IDF(qi) · [f(qi, D) · (k1 + 1)] / [f(qi, D) + k1 · (1 - b + b · |D| / avgdl)]</code></pre>
+
+<p>Let's break down each component:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Component</th>
+      <th>Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>f(qi, D)</strong></td>
+      <td>Term frequency — how many times query term <em>qi</em> appears in document <em>D</em></td>
+    </tr>
+    <tr>
+      <td><strong>|D|</strong></td>
+      <td>Length of the document (number of words)</td>
+    </tr>
+    <tr>
+      <td><strong>avgdl</strong></td>
+      <td>Average document length across the entire corpus</td>
+    </tr>
+    <tr>
+      <td><strong>k1</strong></td>
+      <td>Tuning parameter that controls term frequency saturation (typically 1.2–2.0)</td>
+    </tr>
+    <tr>
+      <td><strong>b</strong></td>
+      <td>Tuning parameter that controls document length normalization (typically 0.75)</td>
+    </tr>
+    <tr>
+      <td><strong>IDF(qi)</strong></td>
+      <td>Inverse document frequency — how rare the term <em>qi</em> is across all documents</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Understanding IDF (Inverse Document Frequency)</h3>
+
+<p>IDF rewards rare terms and penalizes common ones. If the word "the" appears in almost every document, it gets a very low IDF score. If "quantum" appears in only a few documents, it gets a high IDF score. The formula is:</p>
+
+<pre><code>IDF(qi) = ln[(N - n(qi) + 0.5) / (n(qi) + 0.5) + 1]
+
+# Where:
+#   N  = total number of documents in the corpus
+#   n(qi) = number of documents containing the term qi</code></pre>
+
+<div class="callout callout-tip">
+  <strong>Why does IDF matter?</strong> Without IDF, common words like "the" or "is" would dominate search results. IDF ensures that matching on rare, meaningful terms contributes more to the relevance score than matching on common filler words.
+</div>
+
+<h3>Term Frequency Saturation</h3>
+
+<p>One of BM25's key improvements over TF-IDF is <strong>saturation</strong>. In raw TF-IDF, a word appearing 100 times in a document scores 10× more than a word appearing 10 times. But in reality, the 100th occurrence of a word doesn't add much more relevance than the 10th. BM25 handles this with the <strong>k1</strong> parameter:</p>
+
+<pre><code># With k1 = 1.5, the contribution of term frequency saturates:
+
+# Term appears 1 time:   score contribution ≈ 1.00
+# Term appears 5 times:   score contribution ≈ 2.73
+# Term appears 10 times:  score contribution ≈ 3.10
+# Term appears 50 times:  score contribution ≈ 3.48  (diminishing returns!)
+
+# Compare with raw TF-IDF (no saturation):
+# Term appears 1 time:   score contribution = 1
+# Term appears 5 times:   score contribution = 5
+# Term appears 10 times:  score contribution = 10
+# Term appears 50 times:  score contribution = 50  (unbounded!)</code></pre>
+
+<h2>Implementing BM25 in Python</h2>
+
+<p>Let's build a BM25 implementation from scratch to understand how it works, and then use a production-ready library.</p>
+
+<h3>From-Scratch Implementation</h3>
+
+<pre><code>
+import math
+from collections import Counter, defaultdict
+
+class BM25:
+    def __init__(self, corpus, k1=1.5, b=0.75):
+        self.k1 = k1
+        self.b = b
+        self.corpus = corpus
+        self.doc_count = len(corpus)
+        self.doc_lengths = []
+        self.term_freqs = []
+        self.doc_freq = defaultdict(int)
+        self.idf = {}
+        self.avgdl = 0
+
+        self._build_index()
+
+    def _tokenize(self, text):
+        return text.lower().split()
+
+    def _build_index(self):
+        total_length = 0
+
+        for doc in self.corpus:
+            tokens = self._tokenize(doc)
+            self.doc_lengths.append(len(tokens))
+            total_length += len(tokens)
+
+            tf = Counter(tokens)
+            self.term_freqs.append(tf)
+
+            for term in set(tokens):
+                self.doc_freq[term] += 1
+
+        self.avgdl = total_length / self.doc_count
+
+        # Compute IDF for each term
+        for term, df in self.doc_freq.items():
+            self.idf[term] = math.log(
+                (self.doc_count - df + 0.5) / (df + 0.5) + 1
+            )
+
+    def score(self, query, doc_index):
+        query_terms = self._tokenize(query)
+        score = 0.0
+        doc_tf = self.term_freqs[doc_index]
+        doc_len = self.doc_lengths[doc_index]
+
+        for term in query_terms:
+            if term not in self.idf:
+                continue
+
+            tf = doc_tf.get(term, 0)
+            numerator = tf * (self.k1 + 1)
+            denominator = tf + self.k1 * (1 - self.b + self.b * doc_len / self.avgdl)
+            score += self.idf[term] * (numerator / denominator)
+
+        return score
+
+    def search(self, query, top_k=5):
+        scores = []
+        for i in range(self.doc_count):
+            score = self.score(query, i)
+            scores.append((i, score))
+
+        scores.sort(key=lambda x: x[1], reverse=True)
+        return scores[:top_k]
+
+
+# Example usage
+corpus = [
+    "The cat sat on the mat and looked at the bird.",
+    "Machine learning algorithms process data to find patterns.",
+    "The dog chased the cat around the garden.",
+    "Natural language processing helps computers understand text.",
+    "BM25 is a ranking function used in information retrieval.",
+    "Cats and dogs are popular pets around the world.",
+    "Deep learning models can learn complex patterns from data.",
+    "The quick brown fox jumps over the lazy dog.",
+    "Information retrieval systems help users find relevant documents.",
+    "Python is a popular programming language for data science.",
+]
+
+bm25 = BM25(corpus)
+results = bm25.search("cat dog pets", top_k=3)
+
+for doc_idx, score in results:
+    print(f"Doc {doc_idx} (score: {score:.4f}): {corpus[doc_idx]}")
+</code></pre>
+
+<h3>Using the <code>rank_bm25</code> Library</h3>
+
+<p>For production use, the <code>rank_bm25</code> library provides a fast, well-tested implementation:</p>
+
+<pre><code>
+# Install: pip install rank-bm25
+
+from rank_bm25 import BM25Okapi
+
+corpus = [
+    "The cat sat on the mat and looked at the bird.",
+    "Machine learning algorithms process data to find patterns.",
+    "The dog chased the cat around the garden.",
+    "Natural language processing helps computers understand text.",
+    "BM25 is a ranking function used in information retrieval.",
+    "Cats and dogs are popular pets around the world.",
+    "Deep learning models can learn complex patterns from data.",
+    "The quick brown fox jumps over the lazy dog.",
+    "Information retrieval systems help users find relevant documents.",
+    "Python is a popular programming language for data science.",
+]
+
+# Tokenize the corpus
+tokenized_corpus = [doc.lower().split() for doc in corpus]
+
+# Initialize BM25
+bm25 = BM25Okapi(tokenized_corpus)
+
+# Search
+query = "cat dog pets"
+tokenized_query = query.lower().split()
+
+# Get top 3 documents
+results = bm25.get_top_n(tokenized_query, corpus, n=3)
+
+for doc in results:
+    print(f"  → {doc}")
+
+# Get scores for all documents
+scores = bm25.get_scores(tokenized_query)
+print("\nAll scores:")
+for i, score in enumerate(scores):
+    print(f"  Doc {i}: {score:.4f}")
+</code></pre>
+
+<div class="callout callout-info">
+  <strong>BM25Okapi vs BM25L, BM25Plus:</strong> The <code>rank_bm25</code> library offers three variants. <strong>BM25Okapi</strong> is the classic version. <strong>BM25L</strong> uses a different saturation formula. <strong>BM25Plus</strong> adds a small correction to prevent negative scores for very long documents. For most use cases, BM25Okapi works great.
+</div>
+
+<h2>BM25 in RAG Pipelines</h2>
+
+<p>BM25 is often used as the <strong>first-stage retriever</strong> in Retrieval-Augmented Generation (RAG) systems. It quickly narrows down thousands of documents to a small set of candidates, which can then be re-ranked using more expensive methods like cross-encoders or vector search.</p>
+
+<h3>Hybrid Search: Combining BM25 with Vector Search</h3>
+
+<p>Modern RAG systems often combine BM25 (keyword matching) with dense vector search (semantic matching) for the best of both worlds:</p>
+
+<pre><code>
+from rank_bm25 import BM25Okapi
+import numpy as np
+
+class HybridSearch:
+    def __init__(self, documents, embeddings, bm25_weight=0.5):
+        self.documents = documents
+        self.embeddings = embeddings  # Pre-computed vector embeddings
+        self.bm25_weight = bm25_weight
+        self.vector_weight = 1 - bm25_weight
+
+        # Build BM25 index
+        tokenized = [doc.lower().split() for doc in documents]
+        self.bm25 = BM25Okapi(tokenized)
+
+    def search(self, query, query_embedding, top_k=5):
+        # BM25 scores
+        bm25_scores = self.bm25.get_scores(query.lower().split())
+        bm25_scores = bm25_scores / (bm25_scores.max() + 1e-8)  # Normalize
+
+        # Vector similarity scores
+        similarities = np.dot(self.embeddings, query_embedding)
+        similarities = similarities / (similarities.max() + 1e-8)  # Normalize
+
+        # Combine scores
+        combined = (self.bm25_weight * bm25_scores +
+                    self.vector_weight * similarities)
+
+        top_indices = np.argsort(combined)[::-1][:top_k]
+        return [(self.documents[i], combined[i]) for i in top_indices]
+
+
+# Example usage
+documents = [
+    "Python is a versatile programming language.",
+    "BM25 ranks documents based on keyword relevance.",
+    "Vector embeddings capture semantic meaning.",
+    "Hybrid search combines keyword and semantic methods.",
+]
+
+# Simulated embeddings (in practice, use sentence-transformers)
+embeddings = np.random.rand(4, 384)  # 4 docs, 384-dim vectors
+query_embedding = np.random.rand(384)
+
+searcher = HybridSearch(documents, embeddings, bm25_weight=0.4)
+results = searcher.search("keyword search ranking", query_embedding)
+
+for doc, score in results:
+    print(f"  [{score:.4f}] {doc}")
+</code></pre>
+
+<div class="callout callout-warn">
+  <strong>Normalization is critical!</strong> When combining BM25 and vector scores, you must normalize both to the same scale (e.g., 0–1). Otherwise, one scoring method will dominate the combined results. Min-max normalization or rank-based fusion are common approaches.
+</div>
+
+<h2>When to Use BM25</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Scenario</th>
+      <th>BM25 Works Well?</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Exact keyword matching</td>
+      <td>✅ Excellent</td>
+      <td>BM25's core strength</td>
+    </tr>
+    <tr>
+      <td>Technical terms / acronyms</td>
+      <td>✅ Excellent</td>
+      <td>Precise term matching</td>
+    </tr>
+    <tr>
+      <td>Synonym handling</td>
+      <td>❌ Poor</td>
+      <td>"car" won't match "automobile"</td>
+    </tr>
+    <tr>
+      <td>Semantic similarity</td>
+      <td>❌ Poor</td>
+      <td>Use vector search instead</td>
+    </tr>
+    <tr>
+      <td>Large-scale filtering</td>
+      <td>✅ Excellent</td>
+      <td>Very fast even on millions of docs</td>
+    </tr>
+    <tr>
+      <td>Multilingual search</td>
+      <td>⚠️ Limited</td>
+      <td>Needs language-specific tokenizers</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-tip">
+  <strong>Pro tip:</strong> In AI agent systems, BM25 is often used to retrieve relevant tools, API documentation, or knowledge base entries based on the user's query keywords. It's fast, interpretable, and doesn't require GPU resources — making it ideal for the first stage of a multi-step retrieval pipeline.
+</div>
+
+<h2>Coding Exercise</h2>
+
+<div class="exercise">
+  <div class="exercise-header">Exercise: Build a BM25-Powered FAQ Retriever</div>
+  <div class="exercise-body">
+    <p>You have a list of FAQ documents. Use BM25 to build a retriever that takes a user's question and returns the top 3 most relevant FAQ entries.</p>
+    <p><strong>Requirements:</strong></p>
+    <ul>
+      <li>Use the <code>rank_bm25</code> library</li>
+      <li>Implement a <code>faq_search(query, top_k=3)</code> function</li>
+      <li>Return both the document text and the BM25 score</li>
+      <li>Handle the case where no documents match (return empty list)</li>
+    </ul>
+    <p><strong>Starter corpus:</strong></p>
+    <pre><code>faq_corpus = [
+    "To reset your password, go to Settings > Security > Reset Password.",
+    "Our return policy allows returns within 30 days of purchase.",
+    "You can track your order using the tracking number sent to your email.",
+    "To cancel a subscription, visit Account > Subscriptions > Cancel.",
+    "We accept Visa, Mastercard, PayPal, and Apple Pay.",
+    "Shipping is free for orders over $50 in the continental US.",
+    "To contact support, email support@example.com or call 1-800-555-0199.",
+    "Your data is encrypted using AES-256 and stored securely.",
+    "You can update your profile information in the Account Settings page.",
+    "Refunds are processed within 5-7 business days after approval.",
+]</code></pre>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+    <pre><code>
+from rank_bm25 import BM25Okapi
+
+faq_corpus = [
+    "To reset your password, go to Settings > Security > Reset Password.",
+    "Our return policy allows returns within 30 days of purchase.",
+    "You can track your order using the tracking number sent to your email.",
+    "To cancel a subscription, visit Account > Subscriptions > Cancel.",
+    "We accept Visa, Mastercard, PayPal, and Apple Pay.",
+    "Shipping is free for orders over $50 in the continental US.",
+    "To contact support, email support@example.com or call 1-800-555-0199.",
+    "Your data is encrypted using AES-256 and stored securely.",
+    "You can update your profile information in the Account Settings page.",
+    "Refunds are processed within 5-7 business days after approval.",
+]
+
+# Build the index
+tokenized_corpus = [doc.lower().split() for doc in faq_corpus]
+bm25 = BM25Okapi(tokenized_corpus)
+
+def faq_search(query, top_k=3):
+    if not query or not query.strip():
+        return []
+
+    tokenized_query = query.lower().split()
+    scores = bm25.get_scores(tokenized_query)
+
+    # Get top-k indices
+    import numpy as np
+    top_indices = np.argsort(scores)[::-1][:top_k]
+
+    results = []
+    for idx in top_indices:
+        if scores[idx] > 0:  # Only include documents with non-zero scores
+            results.append({
+                "document": faq_corpus[idx],
+                "score": round(float(scores[idx]), 4)
+            })
+
+    return results
+
+# Test it
+query = "How do I get my money back?"
+results = faq_search(query)
+
+print(f"Query: '{query}'\n")
+for i, r in enumerate(results, 1):
+    print(f"  {i}. [{r['score']}] {r['document']}")
+
+# Output:
+# Query: 'How do I get my money back?'
+#
+#   1. [2.8912] Refunds are processed within 5-7 business days after approval.
+#   2. [2.1543] Our return policy allows returns within 30 days of purchase.
+#   3. [0.0000] ... (filtered out if score is 0)
+    </code></pre>
+    <p><strong>Key points in this solution:</strong></p>
+    <ul>
+      <li>We tokenize both the corpus and the query in the same way (lowercase + split)</li>
+      <li>We filter out documents with a score of 0 (no matching terms)</li>
+      <li>We use <code>np.argsort</code> to efficiently get the top-k results</li>
+      <li>The function handles edge cases like empty queries</li>
+    </ul>
+  </div>
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+  <li><strong>BM25 is a keyword-based ranking function</strong> that scores documents based on term frequency, inverse document frequency, and document length normalization.</li>
+  <li><strong>Term frequency saturation</strong> (controlled by k1) prevents documents with extremely high keyword counts from dominating results — a key improvement over raw TF-IDF.</li>
+  <li><strong>Document length normalization</strong> (controlled by b) prevents longer documents from having an unfair advantage simply because they contain more words.</li>
+  <li><strong>IDF rewards rare terms</strong> — matching on uncommon, meaningful words contributes more to the score than matching on common words like "the" or "is".</li>
+  <li><strong>BM25 does not handle synonyms or semantics</strong> — "car" won't match "automobile". For semantic matching, use vector search or combine BM25 with embeddings in a hybrid approach.</li>
+  <li><strong>Hybrid search</strong> (BM25 + vector search) is the recommended approach for production RAG systems, combining the precision of keyword matching with the flexibility of semantic search.</li>
+  <li><strong>Normalization is essential</strong> when combining BM25 scores with other scoring methods to ensure fair weighting.</li>
+  <li>The <code>rank_bm25</code> library provides a fast, production-ready implementation that's easy to integrate into Python projects.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> We'll explore <strong>vector embeddings and semantic search</strong> — the other half of the retrieval story. You'll learn how to convert text into dense vectors, compute cosine similarity, and use FAISS for fast approximate nearest neighbor search. By the end, you'll be able to build a complete hybrid retrieval system that combines the best of both keyword and semantic approaches.</p>
+
+  <div class="lesson-nav">
+    <a href="1401.html" class="btn btn-secondary">&larr; Previous: Beyond Pure Vector Search</a>
+    <a href="1403.html" class="btn btn-secondary">Next: Hybrid Search &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-14-2">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(14, 2)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 14;
+const CURRENT_LESSON = 2;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
