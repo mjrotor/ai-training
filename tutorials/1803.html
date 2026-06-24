@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Static Analysis Integration — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-18-3">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-2">Phase 2</a> / Day 18, Lesson 3</div>
+    <div class="lesson-number">Day 18, Lesson 3 of 5</div>
+    <h1 class="lesson-title">Static Analysis Integration</h1>
+    <p class="lesson-desc">Learn about static analysis integration.</p>
+  </div>
+
+<h2>What Is Static Analysis?</h2>
+
+<p>Static analysis is the process of examining source code <em>without executing it</em>. Instead of running the program, a static analyzer reads the code structure, checks patterns, and flags potential issues such as syntax errors, type mismatches, security vulnerabilities, or style violations. Think of it as a proofreader that scans your manuscript before anyone reads it aloud.</p>
+
+<p>In the context of AI agents, static analysis becomes a powerful tool. When an AI agent writes or modifies code, we can automatically verify that the generated code is safe, correct, and follows best practices — all before it ever runs.</p>
+
+<h2>Why Integrate Static Analysis into AI Agents?</h2>
+
+<p>AI agents are increasingly responsible for generating, reviewing, and deploying code. Without guardrails, an agent might produce code that:</p>
+
+<ul>
+  <li>Contains subtle bugs that only appear at runtime</li>
+  <li>Introduces security vulnerabilities (e.g., SQL injection, hardcoded secrets)</li>
+  <li>Violates project coding standards</li>
+  <li>Uses deprecated or unsafe library functions</li>
+</ul>
+
+<p>By integrating static analysis into the agent's workflow, we create a feedback loop: the agent writes code, the analyzer checks it, and the agent refixes any flagged issues — all automatically.</p>
+
+<div class="callout callout-info">
+  <strong>Key Idea:</strong> Static analysis integration turns an AI agent from a "code generator" into a "code quality guardian." The agent doesn't just write code — it self-corrects based on analyzer feedback.
+</div>
+
+<h2>Popular Python Static Analysis Tools</h2>
+
+<p>Python has a rich ecosystem of static analysis tools. Here are the most commonly used ones:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Tool</th>
+      <th>Primary Focus</th>
+      <th>Best For</th>
+      <th>Configurable?</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Pyflakes</strong></td>
+      <td>Error detection (unused imports, undefined names)</td>
+      <td>Quick, lightweight checks</td>
+      <td>Limited</td>
+    </tr>
+    <tr>
+      <td><strong>Pylint</strong></td>
+      <td>Full code quality analysis</td>
+      <td>Comprehensive project linting</td>
+      <td>Highly configurable</td>
+    </tr>
+    <tr>
+      <td><strong>Ruff</strong></td>
+      <td>Fast linting (replaces Flake8)</td>
+      <td>Speed-sensitive pipelines</td>
+      <td>Highly configurable</td>
+    </tr>
+    <tr>
+      <td><strong>Bandit</strong></td>
+      <td>Security vulnerability detection</td>
+      <td>Security auditing</td>
+      <td>Moderately configurable</td>
+    </tr>
+    <tr>
+      <td><strong>MyPy</strong></td>
+      <td>Static type checking</td>
+      <td>Type safety enforcement</td>
+      <td>Highly configurable</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Building a Static Analysis Pipeline for Your Agent</h2>
+
+<p>Let's build a practical pipeline that an AI agent can use to check and improve generated code. The pipeline will:</p>
+
+<ol>
+  <li>Receive a code snippet from the agent</li>
+  <li>Run it through multiple static analyzers</li>
+  <li>Collect and categorize the results</li>
+  <li>Provide actionable feedback for the agent to fix issues</li>
+</ol>
+
+<h3>Step 1: Setting Up the Analyzer Module</h3>
+
+<pre><code>import subprocess
+import json
+import tempfile
+import os
+from dataclasses import dataclass, field
+from typing import List, Optional
+from enum import Enum
+
+
+class Severity(Enum):
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+@dataclass
+class AnalysisIssue:
+    tool: str
+    file: str
+    line: int
+    message: str
+    severity: Severity
+    rule_id: Optional[str] = None
+
+
+@dataclass
+class AnalysisReport:
+    issues: List[AnalysisIssue] = field(default_factory=list)
+    
+    @property
+    def error_count(self) -> int:
+        return sum(1 for i in self.issues 
+                   if i.severity in (Severity.ERROR, Severity.CRITICAL))
+    
+    @property
+    def warning_count(self) -> int:
+        return sum(1 for i in self.issues 
+                   if i.severity == Severity.WARNING)
+    
+    @property
+    def is_clean(self) -> bool:
+        return self.error_count == 0
+    
+    def summary(self) -> str:
+        return (
+            f"Report: {len(self.issues)} issues found — "
+            f"{self.error_count} errors, {self.warning_count} warnings"
+        )
+</code></pre>
+
+<h3>Step 2: Running Individual Analyzers</h3>
+
+<pre><code>class StaticAnalyzer:
+    """Orchestrates multiple static analysis tools."""
+    
+    def __init__(self, tools: Optional[List[str]] = None):
+        self.tools = tools or ["ruff", "bandit", "pyflakes"]
+    
+    def _write_temp_file(self, code: str) -> str:
+        """Write code to a temporary file for analysis."""
+        tmp = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".py", delete=False
+        )
+        tmp.write(code)
+        tmp.close()
+        return tmp.name
+    
+    def _run_ruff(self, filepath: str) -> List[AnalysisIssue]:
+        """Run Ruff linter on the given file."""
+        issues = []
+        try:
+            result = subprocess.run(
+                ["ruff", "check", "--output-format", "json", filepath],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.stdout.strip():
+                for item in json.loads(result.stdout):
+                    severity = (
+                        Severity.ERROR if item["code"] 
+                        and item["code"].startswith("E")
+                        else Severity.WARNING
+                    )
+                    issues.append(AnalysisIssue(
+                        tool="ruff",
+                        file=filepath,
+                        line=item["location"]["row"],
+                        message=item["message"],
+                        severity=severity,
+                        rule_id=item["code"]
+                    ))
+        except FileNotFoundError:
+            issues.append(AnalysisIssue(
+                tool="ruff", file=filepath, line=0,
+                message="Ruff not installed. Run: pip install ruff",
+                severity=Severity.INFO
+            ))
+        return issues
+    
+    def _run_bandit(self, filepath: str) -> List[AnalysisIssue]:
+        """Run Bandit security checker on the given file."""
+        issues = []
+        try:
+            result = subprocess.run(
+                ["bandit", "-f", "json", filepath],
+                capture_output=True, text=True, timeout=30
+            )
+            data = json.loads(result.stdout)
+            for item in data.get("results", []):
+                severity = (
+                    Severity.CRITICAL if item["issue_severity"] == "HIGH"
+                    else Severity.WARNING if item["issue_severity"] == "MEDIUM"
+                    else Severity.INFO
+                )
+                issues.append(AnalysisIssue(
+                    tool="bandit",
+                    file=filepath,
+                    line=item["line_number"],
+                    message=item["issue_text"],
+                    severity=severity,
+                    rule_id=item["test_id"]
+                ))
+        except FileNotFoundError:
+            issues.append(AnalysisIssue(
+                tool="bandit", file=filepath, line=0,
+                message="Bandit not installed. Run: pip install bandit",
+                severity=Severity.INFO
+            ))
+        return issues
+    
+    def _run_pyflakes(self, filepath: str) -> List[AnalysisIssue]:
+        """Run Pyflakes on the given file."""
+        issues = []
+        try:
+            result = subprocess.run(
+                ["pyflakes", filepath],
+                capture_output=True, text=True, timeout=30
+            )
+            for line in result.stdout.strip().split("\n"):
+                if line:
+                    issues.append(AnalysisIssue(
+                        tool="pyflakes",
+                        file=filepath, line=0,
+                        message=line,
+                        severity=Severity.WARNING
+                    ))
+        except FileNotFoundError:
+            issues.append(AnalysisIssue(
+                tool="pyflakes", file=filepath, line=0,
+                message="Pyflakes not installed. Run: pip install pyflakes",
+                severity=Severity.INFO
+            ))
+        return issues
+    
+    def analyze(self, code: str) -> AnalysisReport:
+        """Run all configured analyzers on the given code."""
+        filepath = self._write_temp_file(code)
+        all_issues = []
+        
+        try:
+            tool_map = {
+                "ruff": self._run_ruff,
+                "bandit": self._run_bandit,
+                "pyflakes": self._run_pyflakes,
+            }
+            
+            for tool in self.tools:
+                if tool in tool_map:
+                    all_issues.extend(tool_map[tool](filepath))
+        finally:
+            os.unlink(filepath)  # Clean up temp file
+        
+        return AnalysisReport(issues=all_issues)
+</code></pre>
+
+<div class="callout callout-tip">
+  <strong>Pro Tip:</strong> Always clean up temporary files after analysis. The <code>finally</code> block ensures the temp file is deleted even if an analyzer crashes. In production, consider using a context manager or a dedicated scratch directory.
+</div>
+
+<h3>Step 3: Creating the Feedback Loop</h3>
+
+<p>The real power comes from feeding the analysis results back to the AI agent so it can self-correct. Here's how that feedback loop works:</p>
+
+<pre><code>class AgentCodeReviewer:
+    """Connects an AI agent to the static analysis pipeline."""
+    
+    def __init__(self, max_iterations: int = 3):
+        self.analyzer = StaticAnalyzer(
+            tools=["ruff", "bandit", "pyflakes"]
+        )
+        self.max_iterations = max_iterations
+    
+    def _format_issues_for_agent(
+        self, report: AnalysisReport
+    ) -> str:
+        """Convert analysis report into a prompt-friendly format."""
+        if report.is_clean:
+            return "No issues found. Code looks clean!"
+        
+        lines = [report.summary(), "\nIssues to fix:\n"]
+        
+        # Group by severity (errors first)
+        for severity in [
+            Severity.CRITICAL, Severity.ERROR, 
+            Severity.WARNING, Severity.INFO
+        ]:
+            filtered = [
+                i for i in report.issues if i.severity == severity
+            ]
+            if filtered:
+                lines.append(f"--- {severity.value.upper()} ---")
+                for issue in filtered:
+                    lines.append(
+                        f"  Line {issue.line}: [{issue.tool}] "
+                        f"{issue.message} (Rule: {issue.rule_id})"
+                    )
+                lines.append("")
+        
+        return "\n".join(lines)
+    
+    def review_and_fix(
+        self, 
+        code: str, 
+        agent_fix_function
+    ) -> dict:
+        """
+        Run the analyze-fix loop.
+        
+        agent_fix_function: A callable that takes 
+        (original_code, feedback) and returns fixed_code.
+        """
+        current_code = code
+        history = []
+        
+        for iteration in range(1, self.max_iterations + 1):
+            report = self.analyzer.analyze(current_code)
+            feedback = self._format_issues_for_agent(report)
+            
+            history.append({
+                "iteration": iteration,
+                "issues_count": len(report.issues),
+                "code": current_code,
+                "feedback": feedback
+            })
+            
+            if report.is_clean:
+                break
+            
+            # Ask the agent to fix the issues
+            current_code = agent_fix_function(
+                current_code, feedback
+            )
+        
+        return {
+            "final_code": current_code,
+            "iterations": len(history),
+            "final_report": self.analyzer.analyze(current_code),
+            "history": history
+        }
+</code></pre>
+
+<h2>Handling Common Static Analysis Patterns</h2>
+
+<p>AI agents frequently encounter the same categories of issues. Let's look at the most common ones and how to address them.</p>
+
+<h3>Security Vulnerabilities</h3>
+
+<p>Security issues are the most critical to catch. Bandit excels at finding these:</p>
+
+<pre><code>
+# ❌ BAD: Common security mistakes an agent might generate
+
+import os
+import sqlite3
+
+# Dangerous: command injection vulnerability
+def run_command(user_input):
+    os.system(f"echo {user_input}")  # Bandit: B602
+
+# Dangerous: hardcoded secret
+API_KEY = "sk-1234567890abcdef"  # Bandit: B105
+
+# Dangerous: SQL injection
+def get_user(username):
+    conn = sqlite3.connect("app.db")
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT * FROM users WHERE name = '{username}'"
+    )  # Bandit: B608
+    return cursor.fetchone()
+</code></pre>
+
+<pre><code>
+# ✅ GOOD: Fixed versions
+
+import subprocess
+import sqlite3
+import os
+
+# Safe: use subprocess with argument list
+def run_command(user_input):
+    subprocess.run(["echo", user_input], shell=False)
+
+# Safe: load secret from environment
+API_KEY = os.environ.get("API_KEY")
+
+# Safe: parameterized query
+def get_user(username):
+    conn = sqlite3.connect("app.db")
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM users WHERE name = ?", (username,)
+    )
+    return cursor.fetchone()
+</code></pre>
+
+<div class="callout callout-warn">
+  <strong>Warning:</strong> Never trust AI-generated code to be secure by default. Always run security-focused static analysis (like Bandit) on any code an AI agent produces, especially if it handles user input, database queries, or system commands.
+</div>
+
+<h3>Code Quality Issues</h3>
+
+<p>Ruff catches a wide range of quality issues that make code harder to maintain:</p>
+
+<pre><code>
+# ❌ BAD: Quality issues
+
+import os
+import sys
+import json  # unused import
+import re
+
+def CalculateTotal(items):  # wrong naming convention
+    total=0  # missing spaces around operator
+    for item in items:
+        if item.active==True:  # comparison to True
+            total += item.price*item.quantity  # missing spaces
+    return total
+
+class my_class:  # wrong class naming
+    def __init__(self):
+        self.data=[]  # missing spaces
+</code></pre>
+
+<pre><code>
+# ✅ GOOD: Clean version
+
+import re
+
+def calculate_total(items):
+    total = 0
+    for item in items:
+        if item.active:
+            total += item.price * item.quantity
+    return total
+
+
+class MyClass:
+    def __init__(self):
+        self.data = []
+</code></pre>
+
+<h2>Integrating with an AI Agent Framework</h2>
+
+<p>Let's see how to plug this into a real agent workflow. Here's an example using a simple agent that generates Python functions:</p>
+
+<pre><code>class CodeGeneratingAgent:
+    """A simple agent that generates and self-corrects code."""
+    
+    def __init__(self):
+        self.reviewer = AgentCodeReviewer(max_iterations=3)
+    
+    def generate_function(
+        self, 
+        description: str,
+        llm_generate_func
+    ) -> str:
+        """
+        Generate a function and ensure it passes 
+        static analysis.
+        
+        llm_generate_func: callable that takes a prompt 
+        and returns code string.
+        """
+        # Initial generation
+        prompt = (
+            f"Write a Python function that {description}. "
+            "Include type hints and a docstring."
+        )
+        initial_code = llm_generate_func(prompt)
+        
+        # Define how the agent should fix code given feedback
+        def fix_code(code: str, feedback: str) -> str:
+            fix_prompt = (
+                f"Here is code:\n\n{code}\n\n"
+                f"Static analysis found these issues:\n{feedback}\n\n"
+                "Please fix all issues. Return ONLY the "
+                "corrected code, no explanation."
+            )
+            return llm_generate_func(fix_prompt)
+        
+        # Run the review-and-fix loop
+        result = self.reviewer.review_and_fix(
+            initial_code, fix_code
+        )
+        
+        print(f"Completed in {result['iterations']} iterations")
+        print(result["final_report"].summary())
+        
+        return result["final_code"]
+
+
+# --- Usage Example ---
+# In practice, llm_generate_func would call an actual LLM API
+
+def mock_llm(prompt: str) -> str:
+    """Simulates an LLM response for demonstration."""
+    return '''
+def add_numbers(a, b):
+    result = a + b
+    return result
+'''
+
+agent = CodeGeneratingAgent()
+clean_code = agent.generate_function(
+    description="adds two numbers together",
+    llm_generate_func=mock_llm
+)
+print(clean_code)
+</code></pre>
+
+<div class="callout callout-info">
+  <strong>Architecture Note:</strong> The <code>AgentCodeReviewer</code> is tool-agnostic — it doesn't care whether the code was written by a human, a simple template, or a sophisticated LLM. This makes it reusable across many agent architectures.
+</div>
+
+<h2>Configuring Analysis Rules for Your Project</h2>
+
+<p>Not every project needs every rule. A good static analysis pipeline is tailored to your project's needs:</p>
+
+<pre><code>
+# pyproject.toml — Example Ruff configuration
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "S",    # flake8-bandit (security)
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "S101",  # Use of assert (common in tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S106"]  # Allow assert in tests
+</code></pre>
+
+<pre><code>
+# .bandit — Bandit configuration file
+
+[bandit]
+exclude: /tests,/venv,/env
+tests: B101,B608,B602,B105
+skips: B101
+</code></pre>
+
+<h2>Coding Exercise</h2>
+
+<div class="exercise">
+  <div class="exercise-header">Exercise: Build a Custom Rule Filter</div>
+  <div class="exercise-body">
+    <p>
+      You have an <code>AnalysisReport</code> containing issues from 
+      multiple tools. Write a function called 
+      <code>filter_issues</code> that:
+    </p>
+    <ol>
+      <li>Accepts an <code>AnalysisReport</code>, a list of tool names, and a minimum <code>Severity</code> level</li>
+      <li>Returns a new <code>AnalysisReport</code> containing only issues from the specified tools with severity at or above the minimum</li>
+      <li>Sorts the filtered issues by line number (ascending)</li>
+    </ol>
+    <p>
+      Use the <code>Severity</code> enum ordering: 
+      INFO &lt; WARNING &lt; ERROR &lt; CRITICAL
+    </p>
+    <pre><code># Your function signature:
+def filter_issues(
+    report: AnalysisReport,
+    tools: List[str],
+    min_severity: Severity
+) -> AnalysisReport:
+    pass
+
+# Example usage:
+report = AnalysisReport(issues=[
+    AnalysisIssue("ruff", "main.py", 10, "Unused import", Severity.WARNING, "F401"),
+    AnalysisIssue("bandit", "main.py", 5, "Hardcoded key", Severity.CRITICAL, "B105"),
+    AnalysisIssue("pyflakes", "main.py", 3, "Undefined name", Severity.ERROR, "F821"),
+])
+
+filtered = filter_issues(report, ["ruff", "bandit"], Severity.WARNING)
+# Should contain: F401 (WARNING) and B105 (CRITICAL)
+# Should NOT contain: F821 (wrong tool)</code></pre>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+<pre><code>from typing import List
+
+# Define severity order for comparison
+SEVERITY_ORDER = {
+    Severity.INFO: 0,
+    Severity.WARNING: 1,
+    Severity.ERROR: 2,
+    Severity.CRITICAL: 3,
+}
+
+def filter_issues(
+    report: AnalysisReport,
+    tools: List[str],
+    min_severity: Severity
+) -> AnalysisReport:
+    """Filter analysis report by tool and minimum severity."""
+    min_level = SEVERITY_ORDER[min_severity]
+    
+    filtered = [
+        issue for issue in report.issues
+        if issue.tool in tools
+        and SEVERITY_ORDER[issue.severity] >= min_level
+    ]
+    
+    # Sort by line number ascending
+    filtered.sort(key=lambda i: i.line)
+    
+    return AnalysisReport(issues=filtered)
+
+
+# --- Test ---
+if __name__ == "__main__":
+    report = AnalysisReport(issues=[
+        AnalysisIssue("ruff", "main.py", 10, "Unused import", Severity.WARNING, "F401"),
+        AnalysisIssue("bandit", "main.py", 5, "Hardcoded key", Severity.CRITICAL, "B105"),
+        AnalysisIssue("pyflakes", "main.py", 3, "Undefined name", Severity.ERROR, "F821"),
+        AnalysisIssue("ruff", "main.py", 7, "Line too long", Severity.INFO, "E501"),
+    ])
+    
+    filtered = filter_issues(report, ["ruff", "bandit"], Severity.WARNING)
+    
+    print(filtered.summary())
+    for issue in filtered.issues:
+        print(f"  [{issue.tool}] Line {issue.line}: {issue.message}")
+    
+    # Expected output:
+    # Report: 2 issues found — 1 errors, 1 warnings
+    #   [bandit] Line 5: Hardcoded key
+    #   [ruff] Line 10: Unused import</code></pre>
+  </div>
+</div>
+
+<h2>Performance Considerations</h2>
+
+<p>When running static analysis inside an agent loop, speed matters. Here are strategies to keep your pipeline fast:</p>
+
+<ul>
+  <li><strong>Use Ruff over Flake8/Pyflakes when possible</strong> — Ruff is written in Rust and can be 10–100× faster than equivalent Python linters.</li>
+  <li><strong>Cache results</strong> — If the agent generates the same code twice, don't re-analyze. Use a hash of the code as a cache key.</li>
+  <li><strong>Run analyzers in parallel</strong> — Since tools are independent, use <code>concurrent.futures</code> to run them simultaneously.</li>
+  <li><strong>Limit scope</strong> — Only analyze the files the agent actually changed, not the entire project.</li>
+  <li><strong>Use incremental analysis</strong> — Some tools (like MyPy) support incremental mode that only re-checks changed files.</li>
+</ul>
+
+<pre><code>
+import concurrent.futures
+
+class ParallelStaticAnalyzer(StaticAnalyzer):
+    """Runs analyzers in parallel for better performance."""
+    
+    def analyze(self, code: str) -> AnalysisReport:
+        filepath = self._write_temp_file(code)
+        all_issues = []
+        
+        tool_map = {
+            "ruff": self._run_ruff,
+            "bandit": self._run_bandit,
+            "pyflakes": self._run_pyflakes,
+        }
+        
+        try:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=len(self.tools)
+            ) as executor:
+                futures = {
+                    executor.submit(tool_map[tool], filepath): tool
+                    for tool in self.tools
+                    if tool in tool_map
+                }
+                for future in concurrent.futures.as_completed(
+                    futures
+                ):
+                    all_issues.extend(future.result())
+        finally:
+            os.unlink(filepath)
+        
+        return AnalysisReport(issues=all_issues)
+</code></pre>
+
+<div class="callout callout-tip">
+  <strong>Benchmark Tip:</strong> On a typical 500-line Python file, Ruff completes in ~10ms, Pyflakes in ~50ms, and Bandit in ~500ms. Running them in parallel means total time is bounded by the slowest tool (~500ms), not the sum (~560ms).
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+  <li><strong>Static analysis examines code without running it</strong>, catching bugs, security issues, and style violations before execution.</li>
+  <li><strong>Integrating static analysis into AI agent workflows</strong> creates a self-correcting loop where the agent writes code, receives feedback, and fixes issues automatically.</li>
+  <li><strong>Different tools serve different purposes</strong> — use Ruff for fast linting, Bandit for security, Pyflakes for error detection, and MyPy for type checking.</li>
+  <li><strong>The feedback loop pattern</strong> (analyze → report → fix → re-analyze) is the core architecture for agent-driven code quality.</li>
+  <li><strong>Always configure analysis rules</strong> to match your project's needs — don't blindly enable every rule.</li>
+  <li><strong>Performance optimization matters</strong> in agent loops: use parallel execution, caching, and incremental analysis to keep things fast.</li>
+  <li><strong>Security analysis is non-negotiable</strong> — any AI-generated code that touches user input, databases, or system commands must pass security checks.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> we will explore <em>Dynamic Analysis and Runtime Monitoring</em>, where we go beyond static checks and learn how to observe AI agent behavior during execution — catching runtime errors, monitoring resource usage, and building self-healing agents that detect and respond to failures in real time.</p>
+
+  <div class="lesson-nav">
+    <a href="1802.html" class="btn btn-secondary">&larr; Previous: Reading Code & Diffs</a>
+    <a href="1804.html" class="btn btn-secondary">Next: Writing Review Comments &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-18-3">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(18, 3)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 18;
+const CURRENT_LESSON = 3;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
