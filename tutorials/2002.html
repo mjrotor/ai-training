@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Defining Success Metrics — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-20-2">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-2">Phase 2</a> / Day 20, Lesson 2</div>
+    <div class="lesson-number">Day 20, Lesson 2 of 5</div>
+    <h1 class="lesson-title">Defining Success Metrics</h1>
+    <p class="lesson-desc">Learn about defining success metrics.</p>
+  </div>
+
+<h2>What Are Success Metrics for AI Agents?</h2>
+
+<p>When you build an AI agent, it is not enough to say "it works." You need measurable ways to determine whether your agent is actually performing well. <strong>Success metrics</strong> are the quantitative and qualitative measures that tell you if your agent is achieving its intended goals. Without them, you are flying blind — you might think your agent is great when it is actually failing in critical ways.</p>
+
+<p>Think of success metrics like a report card for your agent. Just as a report card measures performance across different subjects, success metrics measure your agent across different dimensions of capability, reliability, and usefulness.</p>
+
+<h2>Why Metrics Matter</h2>
+
+<p>Defining success metrics early in your development process gives you several important benefits:</p>
+
+<ul>
+  <li><strong>Objective evaluation:</strong> Instead of relying on gut feelings, you have concrete numbers to compare versions of your agent.</li>
+  <li><strong>Targeted improvement:</strong> When a metric is low, you know exactly which part of your agent needs work.</li>
+  <li><strong>Stakeholder communication:</strong> Clear metrics help you explain your agent's value to team members, managers, or clients.</li>
+  <li><strong>Regression detection:</strong> If a new change breaks performance, your metrics will catch it immediately.</li>
+</ul>
+
+<div class="callout callout-info">
+  <strong>Key Insight:</strong> The metrics you choose should always tie back to the <em>user's needs</em>. A metric that looks impressive on paper but does not reflect real user value is a vanity metric — avoid it.
+</div>
+
+<h2>Categories of Success Metrics</h2>
+
+<p>Success metrics for AI agents generally fall into four broad categories. Let us explore each one in detail.</p>
+
+<h3>1. Task Completion Metrics</h3>
+
+<p>These measure whether your agent actually accomplishes what it was asked to do. This is the most fundamental category — if your agent cannot complete tasks, nothing else matters.</p>
+
+<pre><code>
+# Example: Tracking task completion rate
+class TaskTracker:
+    def __init__(self):
+        self.total_tasks = 0
+        self.completed_tasks = 0
+        self.failed_tasks = 0
+
+    def record_completion(self, success: bool):
+        self.total_tasks += 1
+        if success:
+            self.completed_tasks += 1
+        else:
+            self.failed_tasks += 1
+
+    @property
+    def completion_rate(self) -> float:
+        if self.total_tasks == 0:
+            return 0.0
+        return self.completed_tasks / self.total_tasks
+
+    @property
+    def failure_rate(self) -> float:
+        if self.total_tasks == 0:
+            return 0.0
+        return self.failed_tasks / self.total_tasks
+
+# Usage
+tracker = TaskTracker()
+tracker.record_completion(True)
+tracker.record_completion(True)
+tracker.record_completion(False)
+tracker.record_completion(True)
+
+print(f"Completion Rate: {tracker.completion_rate:.1%}")
+print(f"Failure Rate: {tracker.failure_rate:.1%}")
+</code></pre>
+
+<h3>2. Quality Metrics</h3>
+
+<p>Completing a task is one thing — completing it <em>well</em> is another. Quality metrics evaluate how good the agent's outputs are. This is often the hardest category to measure because "quality" can be subjective.</p>
+
+<pre><code>
+# Example: Measuring output quality with a scoring function
+def evaluate_response_quality(response: str, criteria: dict) -> dict:
+    """
+    Score an agent's response across multiple quality dimensions.
+    Each criterion is scored from 0.0 to 1.0.
+    """
+    scores = {}
+
+    # Check relevance: does the response address the query?
+    scores["relevance"] = check_relevance(response, criteria.get("topic", ""))
+
+    # Check accuracy: are the facts correct?
+    scores["accuracy"] = check_accuracy(response, criteria.get("facts", []))
+
+    # Check completeness: were all parts of the question answered?
+    scores["completeness"] = check_completeness(
+        response, criteria.get("required_points", [])
+    )
+
+    # Check conciseness: is the response appropriately brief?
+    word_count = len(response.split())
+    ideal_range = criteria.get("ideal_word_range", (50, 200))
+    if ideal_range[0] <= word_count <= ideal_range[1]:
+        scores["conciseness"] = 1.0
+    else:
+        scores["conciseness"] = 0.5
+
+    # Overall weighted score
+    weights = {"relevance": 0.3, "accuracy": 0.3, "completeness": 0.25, "conciseness": 0.15}
+    scores["overall"] = sum(scores[k] * weights[k] for k in weights)
+
+    return scores
+
+def check_relevance(response: str, topic: str) -> float:
+    """Simple keyword-based relevance check."""
+    if not topic:
+        return 0.5
+    keywords = topic.lower().split()
+    matches = sum(1 for kw in keywords if kw in response.lower())
+    return min(matches / len(keywords), 1.0)
+
+def check_accuracy(response: str, facts: list) -> float:
+    """Check if known facts appear in the response."""
+    if not facts:
+        return 0.5
+    matches = sum(1 for fact in facts if fact.lower() in response.lower())
+    return min(matches / len(facts), 1.0)
+
+def check_completeness(response: str, required_points: list) -> float:
+    """Check if all required points are addressed."""
+    if not required_points:
+        return 0.5
+    matches = sum(1 for point in required_points if point.lower() in response.lower())
+    return min(matches / len(required_points), 1.0)
+
+# Usage
+result = evaluate_response_quality(
+    response="Python is a versatile programming language used in web development, data science, and automation.",
+    criteria={
+        "topic": "Python programming language",
+        "facts": ["Python is a programming language"],
+        "required_points": ["web development", "data science"],
+        "ideal_word_range": (10, 50)
+    }
+)
+
+for criterion, score in result.items():
+    print(f"  {criterion}: {score:.2f}")
+</code></pre>
+
+<h3>3. Efficiency Metrics</h3>
+
+<p>Efficiency metrics tell you how <em>efficiently</em> your agent uses resources. An agent that produces perfect answers but takes five minutes and costs $10 per query is not practical for most applications.</p>
+
+<pre><code>
+# Example: Measuring agent efficiency
+import time
+
+class EfficiencyMonitor:
+    def __init__(self):
+        self.call_count = 0
+        self.total_tokens_used = 0
+        self.total_latency_ms = 0.0
+        self.total_cost = 0.0
+        self.cost_per_1k_tokens = 0.03  # Example: GPT-3.5 pricing
+
+    def record_api_call(self, tokens_used: int, latency_ms: float):
+        self.call_count += 1
+        self.total_tokens_used += tokens_used
+        self.total_latency_ms += latency_ms
+        self.total_cost += (tokens_used / 1000) * self.cost_per_1k_tokens
+
+    @property
+    def avg_latency_ms(self) -> float:
+        if self.call_count == 0:
+            return 0.0
+        return self.total_latency_ms / self.call_count
+
+    @property
+    def avg_tokens_per_call(self) -> float:
+        if self.call_count == 0:
+            return 0.0
+        return self.total_tokens_used / self.call_count
+
+    @property
+    def cost_per_task(self) -> float:
+        if self.call_count == 0:
+            return 0.0
+        return self.total_cost / self.call_count
+
+    def report(self) -> str:
+        return (
+            f"Efficiency Report:\n"
+            f"  Total API calls: {self.call_count}\n"
+            f"  Avg latency: {self.avg_latency_ms:.0f}ms\n"
+            f"  Avg tokens/call: {self.avg_tokens_per_call:.0f}\n"
+            f"  Total cost: ${self.total_cost:.4f}\n"
+            f"  Cost per task: ${self.cost_per_task:.4f}"
+        )
+
+# Usage
+monitor = EfficiencyMonitor()
+monitor.record_api_call(tokens_used=1200, latency_ms=850)
+monitor.record_api_call(tokens_used=950, latency_ms=620)
+monitor.record_api_call(tokens_used=1500, latency_ms=1100)
+
+print(monitor.report())
+</code></pre>
+
+<h3>4. Reliability Metrics</h3>
+
+<p>Reliability metrics measure how consistently your agent performs. An agent that works perfectly 9 times but crashes on the 10th is not reliable enough for production use.</p>
+
+<pre><code>
+# Example: Tracking agent reliability over time
+from datetime import datetime, timedelta
+
+class ReliabilityTracker:
+    def __init__(self, window_hours: int = 24):
+        self.attempts = []
+        self.window_hours = window_hours
+
+    def record_attempt(self, success: bool, error_type: str = None):
+        self.attempts.append({
+            "timestamp": datetime.now(),
+            "success": success,
+            "error_type": error_type
+        })
+
+    def _recent_attempts(self):
+        cutoff = datetime.now() - timedelta(hours=self.window_hours)
+        return [a for a in self.attempts if a["timestamp"] >= cutoff]
+
+    @property
+    def uptime_percentage(self) -> float:
+        recent = self._recent_attempts()
+        if not recent:
+            return 100.0
+        successes = sum(1 for a in recent if a["success"])
+        return (successes / len(recent)) * 100
+
+    @property
+    def error_breakdown(self) -> dict:
+        recent = self._recent_attempts()
+        errors = [a for a in recent if not a["success"] and a["error_type"]]
+        breakdown = {}
+        for err in errors:
+            breakdown[err["error_type"]] = breakdown.get(err["error_type"], 0) + 1
+        return breakdown
+
+    @property
+    def mean_time_between_failures(self) -> float:
+        """Average number of successful attempts between failures."""
+        failures = [i for i, a in enumerate(self.attempts) if not a["success"]]
+        if len(failures) < 2:
+            return float("inf")
+        gaps = [failures[i+1] - failures[i] for i in range(len(failures)-1)]
+        return sum(gaps) / len(gaps)
+
+# Usage
+tracker = ReliabilityTracker(window_hours=24)
+tracker.record_attempt(True)
+tracker.record_attempt(True)
+tracker.record_attempt(False, error_type="timeout")
+tracker.record_attempt(True)
+tracker.record_attempt(False, error_type="rate_limit")
+tracker.record_attempt(True)
+
+print(f"Uptime: {tracker.uptime_percentage:.1f}%")
+print(f"Error breakdown: {tracker.error_breakdown}")
+print(f"MTBF: {tracker.mean_time_between_failures:.1f} attempts")
+</code></pre>
+
+<div class="callout callout-tip">
+  <strong>Pro Tip:</strong> Do not optimize one category at the expense of others. The best agents balance all four. A fast agent that gives wrong answers is just a fast way to be wrong.
+</div>
+
+<h2>Choosing the Right Metrics for Your Agent</h2>
+
+<p>Not every agent needs every metric. The metrics you choose should depend on your agent's purpose, your users, and your constraints. Here is a comparison to help you decide:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Metric Category</th>
+      <th>Best For</th>
+      <th>Example Metric</th>
+      <th>When It Is Critical</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Task Completion</td>
+      <td>Task-oriented agents (booking, searching, writing)</td>
+      <td>Completion rate, success rate</td>
+      <td>Always important</td>
+    </tr>
+    <tr>
+      <td>Quality</td>
+      <td>Content generation, analysis agents</td>
+      <td>Accuracy score, human rating, BLEU/ROUGE</td>
+      <td>When output correctness matters</td>
+    </tr>
+    <tr>
+      <td>Efficiency</td>
+      <td>High-volume or real-time agents</td>
+      <td>Latency, token usage, cost per task</td>
+      <td>When scale or budget is constrained</td>
+    </tr>
+    <tr>
+      <td>Reliability</td>
+      <td>Production agents, autonomous systems</td>
+      <td>Uptime %, error rate, MTBF</td>
+      <td>When users depend on the agent daily</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Building a Metrics Dashboard</h2>
+
+<p>In practice, you will want to collect all your metrics in one place so you can monitor your agent's health at a glance. Here is a simple metrics collection class that ties everything together:</p>
+
+<pre><code>
+# Example: A unified metrics collector for your AI agent
+class AgentMetrics:
+    """Unified metrics collection for an AI agent."""
+
+    def __init__(self, agent_name: str):
+        self.agent_name = agent_name
+        self.task_tracker = {"total": 0, "success": 0, "fail": 0}
+        self.quality_scores = []
+        self.latencies = []
+        self.token_counts = []
+        self.costs = []
+
+    def log_task(self, success: bool, quality_score: float = None,
+                 latency_ms: float = 0, tokens: int = 0, cost: float = 0):
+        """Log a single task attempt with all metrics."""
+        self.task_tracker["total"] += 1
+        if success:
+            self.task_tracker["success"] += 1
+        else:
+            self.task_tracker["fail"] += 1
+
+        if quality_score is not None:
+            self.quality_scores.append(quality_score)
+        if latency_ms > 0:
+            self.latencies.append(latency_ms)
+        if tokens > 0:
+            self.token_counts.append(tokens)
+        if cost > 0:
+            self.costs.append(cost)
+
+    def summary(self) -> dict:
+        """Return a summary of all collected metrics."""
+        t = self.task_tracker
+        return {
+            "agent": self.agent_name,
+            "completion_rate": t["success"] / max(t["total"], 1),
+            "avg_quality": sum(self.quality_scores) / max(len(self.quality_scores), 1),
+            "avg_latency_ms": sum(self.latencies) / max(len(self.latencies), 1),
+            "avg_tokens": sum(self.token_counts) / max(len(self.token_counts), 1),
+            "total_cost": sum(self.costs),
+            "total_tasks": t["total"]
+        }
+
+    def print_summary(self):
+        """Pretty-print the metrics summary."""
+        s = self.summary()
+        print(f"\n{'='*50}")
+        print(f"  Metrics Summary: {s['agent']}")
+        print(f"{'='*50}")
+        print(f"  Tasks Completed : {s['total_tasks']}")
+        print(f"  Completion Rate : {s['completion_rate']:.1%}")
+        print(f"  Avg Quality     : {s['avg_quality']:.2f} / 1.00")
+        print(f"  Avg Latency     : {s['avg_latency_ms']:.0f}ms")
+        print(f"  Avg Tokens      : {s['avg_tokens']:.0f}")
+        print(f"  Total Cost      : ${s['total_cost']:.4f}")
+        print(f"{'='*50}\n")
+
+# Usage
+metrics = AgentMetrics("CustomerSupportBot")
+
+# Simulate logging several tasks
+metrics.log_task(True, quality_score=0.92, latency_ms=450, tokens=800, cost=0.024)
+metrics.log_task(True, quality_score=0.85, latency_ms=380, tokens=720, cost=0.0216)
+metrics.log_task(False, quality_score=0.30, latency_ms=2100, tokens=1500, cost=0.045)
+metrics.log_task(True, quality_score=0.95, latency_ms=520, tokens=900, cost=0.027)
+metrics.log_task(True, quality_score=0.88, latency_ms=410, tokens=780, cost=0.0234)
+
+metrics.print_summary()
+</code></pre>
+
+<div class="callout callout-warn">
+  <strong>Warning:</strong> Be careful of <em>Goodhart's Law</em>: "When a measure becomes a target, it ceases to be a good measure." If you optimize only for one metric, your agent may game the system in ways that hurt real users. Always use a balanced set of metrics.
+</div>
+
+<h2>Common Pitfalls When Defining Metrics</h2>
+
+<p>Even experienced developers make mistakes when choosing and using metrics. Here are the most common pitfalls to watch out for:</p>
+
+<ol>
+  <li><strong>Vanity metrics:</strong> Tracking numbers that look impressive but do not reflect real value. For example, "number of API calls" does not tell you if those calls were useful.</li>
+  <li><strong>Over-optimizing one dimension:</strong> Pushing for faster responses at the cost of accuracy, or higher quality at the cost of reliability.</li>
+  <li><strong>Ignoring edge cases:</strong> Your metrics might look great on average, but your agent could be failing on the most important or difficult tasks.</li>
+  <li><strong>Not versioning your metrics:</strong> As your agent evolves, your metrics should evolve too. A metric that made sense in week one may be irrelevant by week ten.</li>
+  <li><strong>Forgetting the human element:</strong> Quantitative metrics are essential, but they should be complemented with qualitative feedback from real users.</li>
+</ol>
+
+<div class="exercise">
+  <div class="exercise-header">Exercise</div>
+  <div class="exercise-body">
+    <p>You are building an AI agent that helps users find and book restaurant reservations. Define at least <strong>three success metrics</strong> across at least <strong>two different categories</strong> (task completion, quality, efficiency, or reliability). For each metric, write a short Python function that would calculate it given a list of task results.</p>
+    <p>Your task results look like this:</p>
+    <pre><code>results = [
+    {"success": True, "quality": 0.9, "latency_ms": 300, "tokens": 500},
+    {"success": True, "quality": 0.7, "latency_ms": 450, "tokens": 600},
+    {"success": False, "quality": 0.2, "latency_ms": 2000, "tokens": 1200},
+    {"success": True, "quality": 0.85, "latency_ms": 350, "tokens": 480},
+]</code></pre>
+    <p>Write your metrics functions and test them against this data.</p>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+    <pre><code>
+# Solution: Success metrics for a restaurant booking agent
+
+results = [
+    {"success": True, "quality": 0.9, "latency_ms": 300, "tokens": 500},
+    {"success": True, "quality": 0.7, "latency_ms": 450, "tokens": 600},
+    {"success": False, "quality": 0.2, "latency_ms": 2000, "tokens": 1200},
+    {"success": True, "quality": 0.85, "latency_ms": 350, "tokens": 480},
+]
+
+# Metric 1: Task Completion Rate
+def completion_rate(results: list) -> float:
+    """Percentage of tasks completed successfully."""
+    if not results:
+        return 0.0
+    successes = sum(1 for r in results if r["success"])
+    return successes / len(results)
+
+# Metric 2: Average Quality Score (on successful tasks only)
+def avg_quality(results: list) -> float:
+    """Average quality score across successful tasks."""
+    successful = [r["quality"] for r in results if r["success"]]
+    if not successful:
+        return 0.0
+    return sum(successful) / len(successful)
+
+# Metric 3: P95 Latency (95th percentile)
+def p95_latency(results: list) -> float:
+    """95th percentile latency in milliseconds."""
+    latencies = sorted(r["latency_ms"] for r in results)
+    if not latencies:
+        return 0.0
+    index = int(len(latencies) * 0.95)
+    return latencies[min(index, len(latencies) - 1)]
+
+# Metric 4: Cost Efficiency (tokens per successful task)
+def cost_efficiency(results: list) -> float:
+    """Average tokens used per successful task (lower is better)."""
+    successful = [r for r in results if r["success"]]
+    if not successful:
+        return float("inf")
+    return sum(r["tokens"] for r in successful) / len(successful)
+
+# Run all metrics
+print(f"Completion Rate    : {completion_rate(results):.1%}")
+print(f"Avg Quality       : {avg_quality(results):.2f}")
+print(f"P95 Latency       : {p95_latency(results)}ms")
+print(f"Cost Efficiency   : {cost_efficiency(results):.0f} tokens/task")
+    </code></pre>
+    <p>This solution covers three categories: <strong>task completion</strong> (completion rate), <strong>quality</strong> (average quality score), and <strong>efficiency</strong> (P95 latency and cost per task). Notice that quality is measured only on successful tasks — a failed task's quality score is not meaningful for evaluating output quality.</p>
+  </div>
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+  <li>Success metrics are essential for objectively evaluating your AI agent's performance — never ship an agent without them.</li>
+  <li>The four main categories are <strong>task completion</strong>, <strong>quality</strong>, <strong>efficiency</strong>, and <strong>reliability</strong> — a strong agent balances all four.</li>
+  <li>Choose metrics that align with your agent's purpose and your users' needs. Not every agent needs every metric.</li>
+  <li>Avoid vanity metrics that look impressive but do not reflect real user value.</li>
+  <li>Beware of Goodhart's Law: always use a balanced set of metrics rather than optimizing for a single number.</li>
+  <li>Combine quantitative metrics with qualitative user feedback for the most complete picture of your agent's performance.</li>
+  <li>Version your metrics alongside your agent — as your agent evolves, your metrics should evolve too.</li>
+</ul>
+
+<p><strong>In the next lesson,</strong> we will explore how to set up automated testing pipelines for your AI agent, so that your metrics are tracked continuously every time you make a change to your code. This will help you catch regressions early and maintain confidence in your agent's performance as it grows more complex.</p>
+
+  <div class="lesson-nav">
+    <a href="2001.html" class="btn btn-secondary">&larr; Previous: Why Evaluate Agents?</a>
+    <a href="2003.html" class="btn btn-secondary">Next: LLM-as-Judge &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-20-2">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(20, 2)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 20;
+const CURRENT_LESSON = 2;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>

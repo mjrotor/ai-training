@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM-as-Judge — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-20-3">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-2">Phase 2</a> / Day 20, Lesson 3</div>
+    <div class="lesson-number">Day 20, Lesson 3 of 5</div>
+    <h1 class="lesson-title">LLM-as-Judge</h1>
+    <p class="lesson-desc">Learn about llm-as-judge.</p>
+  </div>
+
+<h2>What Is an LLM-as-Judge?</h2>
+
+<p>As AI systems grow more sophisticated, evaluating their output becomes harder. You can't always rely on simple metrics like accuracy or BLEU scores — especially for open-ended tasks like creative writing, summarization, or reasoning. This is where the <strong>LLM-as-Judge</strong> pattern comes in.</p>
+
+<p>The idea is simple yet powerful: use a large language model itself to evaluate and score the outputs of other models (or even its own outputs). Instead of writing complex rule-based evaluation pipelines, you leverage the LLM's natural language understanding to make nuanced judgments.</p>
+
+<div class="callout callout-info">
+  <strong>Key Concept:</strong> LLM-as-Judge is an agentic evaluation pattern where one LLM (the "judge") is prompted to assess the quality, correctness, or relevance of outputs produced by another model or pipeline.
+</div>
+
+<h2>Why Use an LLM Judge?</h2>
+
+<p>Traditional evaluation methods have real limitations. Here's why the LLM-as-Judge approach has become so popular:</p>
+
+<ul>
+  <li><strong>Scalability:</strong> You can evaluate thousands of outputs without manually writing rules for each case.</li>
+  <li><strong>Nuanced understanding:</strong> LLMs can judge tone, coherence, factual accuracy, and style — things regex and keyword matching can't catch.</li>
+  <li><strong>Cost efficiency:</strong> Cheaper than hiring human annotators for every evaluation cycle.</li>
+  <li><strong>Consistency:</strong> When properly configured, the judge applies the same criteria across all evaluations (unlike humans who may drift).</li>
+  <li><strong>Flexibility:</strong> Swap in different rubrics or criteria by simply changing the prompt.</li>
+</ul>
+
+<div class="callout callout-warn">
+  <strong>Watch out:</strong> LLM judges can exhibit biases — favoring longer responses, preferring their own style, or showing position bias. We'll cover how to mitigate these later.
+</div>
+
+<h2>Core Architecture</h2>
+
+<p>At its heart, an LLM-as-Judge system has three components:</p>
+
+<ol>
+  <li><strong>The Subject Model</strong> — the AI system whose output you want to evaluate.</li>
+  <li><strong>The Judge Prompt</strong> — a carefully crafted prompt that defines evaluation criteria.</li>
+  <li><strong>The Judge LLM</strong> — the model that reads the output and produces a score or verdict.</li>
+</ol>
+
+<pre><code>from openai import OpenAI
+
+client = OpenAI()
+
+def llm_as_judge(subject_output: str, original_input: str, rubric: str) -> str:
+    """Use an LLM to judge the quality of a subject model's output."""
+    
+    judge_prompt = f"""You are an expert evaluator. Your task is to assess
+the quality of an AI-generated response based on the provided rubric.
+
+## Original Input
+{original_input}
+
+## AI-Generated Response
+{subject_output}
+
+## Evaluation Rubric
+{rubric}
+
+## Instructions
+Score the response on a scale of 1-5 for each criterion in the rubric.
+Provide a brief justification for each score.
+End with an overall score as: OVERALL: <score>"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a fair, thorough evaluator."},
+            {"role": "user", "content": judge_prompt}
+        ],
+        temperature=0.1  # Low temperature for consistency
+    )
+    
+    return response.choices[0].message.content
+
+# Example usage
+rubric = """- Accuracy: Is the information factually correct?
+- Completeness: Does it address all parts of the question?
+- Clarity: Is the response easy to understand?"""
+
+result = llm_as_judge(
+    subject_output="Photosynthesis converts sunlight into energy, occurring in chloroplasts.",
+    original_input="Explain how photosynthesis works.",
+    rubric=rubric
+)
+print(result)</code></pre>
+
+<h2>Types of LLM Judges</h2>
+
+<p>There are several distinct patterns for using LLMs as judges. Choosing the right one depends on your use case.</p>
+
+<h3>1. Single Rating Judge</h3>
+
+<p>The simplest form. The judge reads the output and assigns a single score based on overall quality.</p>
+
+<pre><code>single_rating_prompt = """Rate the following response on a scale of 1 to 5,
+where 1 is very poor and 5 is excellent.
+
+Question: {question}
+Response: {response}
+
+Reply with ONLY a number (1-5)."""</code></pre>
+
+<h3>2. Multi-Criteria Judge</h3>
+
+<p>The judge evaluates multiple dimensions independently. This gives you granular feedback.</p>
+
+<pre><code>multi_criteria_prompt = """Evaluate this response on the following criteria.
+For each, give a score from 1-5 and a one-sentence explanation.
+
+Criteria:
+1. Factual Accuracy
+2. Relevance to the Question
+3. Depth of Explanation
+4. Language Quality
+
+Question: {question}
+Response: {response}
+
+Format your response as JSON:
+{{"criteria": [{{"name": "...", "score": ..., "reason": "..."}}], "overall": ...}}"""</code></pre>
+
+<h3>3. Pairwise Comparison Judge</h3>
+
+<p>Present two responses side by side and ask the judge to pick the winner. This is how Chatbot Arena rankings work.</p>
+
+<pre><code>pairwise_prompt = """You will see two responses to the same question.
+Choose the better response.
+
+Question: {question}
+
+Response A: {response_a}
+
+Response B: {response_b}
+
+Which response is better? Reply with ONLY "A" or "B" and a brief reason."""</code></pre>
+
+<h3>4. Reference-Based Judge</h3>
+
+<p>The judge compares the output against a known correct answer or gold standard.</p>
+
+<div class="callout callout-tip">
+  <strong>Tip:</strong> Pairwise comparisons tend to be more reliable than absolute ratings because LLMs are generally better at relative judgments than assigning absolute scores.
+</div>
+
+<h2>Judge Comparison Table</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Judge Type</th>
+      <th>Best For</th>
+      <th>Reliability</th>
+      <th>Complexity</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Single Rating</td>
+      <td>Quick quality checks</td>
+      <td>Medium</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Multi-Criteria</td>
+      <td>Detailed feedback</td>
+      <td>High</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Pairwise</td>
+      <td>Model comparison / ranking</td>
+      <td>Very High</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Reference-Based</td>
+      <td>Factual accuracy tasks</td>
+      <td>High</td>
+      <td>Low</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Building a Robust Judge Agent</h2>
+
+<p>A naive judge prompt is a start, but production-grade LLM judges need careful engineering. Let's build one step by step.</p>
+
+<h3>Step 1: Define a Clear Rubric</h3>
+
+<p>The rubric is the most important part. Vague rubrics produce inconsistent results.</p>
+
+<pre><code>RUBRIC = """
+Evaluate the AI assistant's response on these dimensions:
+
+1. **Factual Accuracy** (1-5)
+   - 5: All claims are verifiable and correct
+   - 3: Mostly correct with minor inaccuracies
+   - 1: Contains significant factual errors
+
+2. **Helpfulness** (1-5)
+   - 5: Fully addresses the user's need with actionable information
+   - 3: Partially helpful but missing key details
+   - 1: Does not address the user's question
+
+3. **Safety** (1-5)
+   - 5: No harmful, biased, or inappropriate content
+   - 3: Minor concerns but nothing dangerous
+   - 1: Contains harmful or dangerous content
+
+4. **Conciseness** (1-5)
+   - 5: Efficient and to the point
+   - 3: Slightly verbose or terse
+   - 1: Extremely wordy or too brief to be useful
+"""</code></pre>
+
+<h3>Step 2: Build the Judge Class</h3>
+
+<pre><code>import json
+from openai import OpenAI
+from dataclasses import dataclass
+
+client = OpenAI()
+
+@dataclass
+class JudgeResult:
+    scores: dict
+    overall_score: float
+    reasoning: str
+    confidence: str  # "high", "medium", "low"
+
+class LLMAgentJudge:
+    def __init__(self, model: str = "gpt-4o", temperature: float = 0.1):
+        self.model = model
+        self.temperature = temperature
+        self.rubric = self._default_rubric()
+    
+    def _default_rubric(self) -> str:
+        return """
+        Evaluate on these criteria (1-5 each):
+        - Accuracy: Is the information correct?
+        - Helpfulness: Does it solve the user's problem?
+        - Safety: Is it free from harmful content?
+        - Clarity: Is it well-structured and easy to follow?
+        """
+    
+    def evaluate(self, question: str, response: str) -> JudgeResult:
+        prompt = f"""You are an impartial AI evaluator.
+
+Question: {question}
+Response: {response}
+
+Rubric: {self.rubric}
+
+Score each criterion 1-5. Provide brief reasoning.
+Output valid JSON:
+{{"scores": {{"accuracy": n, "helpfulness": n, "safety": n, "clarity": n}},
+"overall": n, "reasoning": "...", "confidence": "high/medium/low"}}"""
+
+        result = client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": "You are a precise, unbiased evaluator. Always output valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=self.temperature,
+            response_format={"type": "json_object"}
+        )
+        
+        parsed = json.loads(result.choices[0].message.content)
+        
+        return JudgeResult(
+            scores=parsed["scores"],
+            overall_score=parsed["overall"],
+            reasoning=parsed["reasoning"],
+            confidence=parsed["confidence"]
+        )
+
+# Usage
+judge = LLMAgentJudge()
+result = judge.evaluate(
+    question="What is the capital of France and why is it important?",
+    response="Paris is the capital of France. It's important as a major European cultural and economic center."
+)
+
+print(f"Overall Score: {result.overall_score}/5")
+print(f"Confidence: {result.confidence}")
+for criterion, score in result.scores.items():
+    print(f"  {criterion}: {score}/5")</code></pre>
+
+<h3>Step 3: Mitigate Bias</h3>
+
+<p>LLM judges are not perfect. Here are common biases and how to address them:</p>
+
+<ul>
+  <li><strong>Position Bias:</strong> The judge prefers whichever response it sees first. <em>Fix:</strong> Randomize the order of responses in pairwise comparisons.</li>
+  <li><strong>Verbosity Bias:</strong> Longer responses get higher scores. <em>Fix:</strong> Add a conciseness criterion to your rubric.</li>
+  <li><strong>Self-Enhancement Bias:</strong> Models prefer outputs similar to their own style. <em>Fix:</strong> Use a different model as the judge than the one being evaluated.</li>
+  <li><strong>Halo Effect:</strong> One strong aspect inflates all scores. <em>Fix:</strong> Use multi-criteria scoring with independent evaluations.</li>
+</ul>
+
+<div class="callout callout-warn">
+  <strong>Important:</strong> Always run your judge multiple times and average the results. A single evaluation can be noisy. For critical applications, use at least 3 runs with majority voting.
+</div>
+
+<pre><code>def evaluate_with_confidence(judge: LLMAgentJudge, question: str, 
+                                response: str, runs: int = 3) -> dict:
+    """Run the judge multiple times and aggregate results."""
+    all_scores = []
+    
+    for i in range(runs):
+        result = judge.evaluate(question, response)
+        all_scores.append(result.overall_score)
+    
+    avg_score = sum(all_scores) / len(all_scores)
+    
+    # Check agreement — high variance means low confidence
+    variance = sum((s - avg_score) ** 2 for s in all_scores) / len(all_scores)
+    agreement = "high" if variance < 0.5 else "medium" if variance < 1.5 else "low"
+    
+    return {
+        "average_score": round(avg_score, 2),
+        "individual_scores": all_scores,
+        "variance": round(variance, 2),
+        "agreement": agreement
+    }
+
+# Example
+result = evaluate_with_confidence(judge, 
+    "Explain quantum entanglement", 
+    "Quantum entanglement is when particles become correlated so that measuring one instantly affects the other.",
+    runs=3
+)
+print(f"Average: {result['average_score']}, Agreement: {result['agreement']}")</code></pre>
+
+<h2>Using LLM Judges in Agent Workflows</h2>
+
+<p>LLM-as-Judge shines when integrated into agentic pipelines. Here are three powerful patterns:</p>
+
+<h3>Pattern 1: Self-Refinement Loop</h3>
+
+<p>The agent evaluates its own output and iterates until it meets a quality threshold.</p>
+
+<pre><code>def self_refine(agent_response: str, question: str, 
+                 judge: LLMAgentJudge, max_iterations: int = 3) -> str:
+    """Agent refines its output based on judge feedback."""
+    current_response = agent_response
+    
+    for iteration in range(max_iterations):
+        result = judge.evaluate(question, current_response)
+        
+        if result.overall_score >= 4.0:
+            print(f"✓ Passed evaluation on iteration {iteration + 1}")
+            break
+        
+        # Ask the agent to improve based on judge feedback
+        improvement_prompt = f"""Your previous response scored {result.overall_score}/5.
+Judge feedback: {result.reasoning}
+
+Improve your response to address the weaknesses.
+Question: {question}
+Previous response: {current_response}"""
+        
+        improved = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": improvement_prompt}]
+        )
+        current_response = improved.choices[0].message.content
+    
+    return current_response</code></pre>
+
+<h3>Pattern 2: Multi-Agent Debate</h3>
+
+<p>Multiple agents generate responses, and the judge picks the best one.</p>
+
+<h3>Pattern 3: Quality Gate</h3>
+
+<p>The judge acts as a filter — only outputs above a threshold proceed to the next step in the pipeline.</p>
+
+<div class="callout callout-tip">
+  <strong>Pro Tip:</strong> Combine LLM judges with traditional metrics. Use keyword matching or embedding similarity as a fast first pass, then apply the LLM judge only for borderline cases. This saves cost and latency.
+</div>
+
+<h2>Coding Exercise</h2>
+
+<div class="exercise">
+  <div class="exercise-header">Exercise: Build a Pairwise Comparison Judge</div>
+  <div class="exercise-body">
+    <p>Write a function <code>pairwise_judge</code> that takes a question and two responses, uses an LLM to determine which is better, and returns the winner along with reasoning.</p>
+    <p>Requirements:</p>
+    <ul>
+      <li>Accept a <code>question</code>, <code>response_a</code>, and <code>response_b</code></li>
+      <li>Randomize the order (sometimes A first, sometimes B first) to reduce position bias</li>
+      <li>Return a dict with keys: <code>winner</code> ("A" or "B"), <code>reasoning</code>, and <code>order</code> (which order was presented)</li>
+      <li>Use <code>response_format={"type": "json_object"}</code> for reliable parsing</li>
+    </ul>
+    <p>Bonus: Run the comparison twice with different orderings and check if the judge is consistent.</p>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+<pre><code>import random
+import json
+from openai import OpenAI
+
+client = OpenAI()
+
+def pairwise_judge(question: str, response_a: str, response_b: str) -> dict:
+    """Compare two responses and return the winner, with bias mitigation."""
+    
+    # Randomize order to reduce position bias
+    if random.random() > 0.5:
+        first, second = response_a, response_b
+        order = "AB"
+    else:
+        first, second = response_b, response_a
+        order = "BA"
+    
+    prompt = f"""Compare these two responses to the same question.
+
+Question: {question}
+
+First Response:
+{first}
+
+Second Response:
+{second}
+
+Which response is better? Consider accuracy, helpfulness, and clarity.
+Output JSON: {{"winner": "first" or "second", "reasoning": "..."}}"""
+
+    result = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are an impartial evaluator."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.1,
+        response_format={"type": "json_object"}
+    )
+    
+    parsed = json.loads(result.choices[0].message.content)
+    
+    # Map back to original labels
+    if order == "AB":
+        winner = "A" if parsed["winner"] == "first" else "B"
+    else:
+        winner = "B" if parsed["winner"] == "first" else "A"
+    
+    return {
+        "winner": winner,
+        "reasoning": parsed["reasoning"],
+        "order": order
+    }
+
+# Bonus: Consistency check
+def check_consistency(question: str, response_a: str, response_b: str, runs: int = 2):
+    winners = []
+    for _ in range(runs):
+        result = pairwise_judge(question, response_a, response_b)
+        winners.append(result["winner"])
+    
+    consistent = len(set(winners)) == 1
+    return {"winners": winners, "consistent": consistent}
+
+# Example
+result = pairwise_judge(
+    "What is machine learning?",
+    "Machine learning is a subset of AI that uses algorithms to learn from data.",
+    "Machine learning is when computers learn patterns from data to make predictions without being explicitly programmed."
+)
+print(f"Winner: {result['winner']}")
+print(f"Reasoning: {result['reasoning']}")
+print(f"Presentation order: {result['order']}")</code></pre>
+  </div>
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+  <li><strong>LLM-as-Judge</strong> uses a language model to evaluate outputs, replacing or supplementing traditional metrics with nuanced, scalable assessment.</li>
+  <li>There are four main judge patterns: <strong>single rating</strong>, <strong>multi-criteria</strong>, <strong>pairwise comparison</strong>, and <strong>reference-based</strong> — each suited to different use cases.</li>
+  <li>A well-designed <strong>rubric</strong> is the foundation of reliable evaluation. Vague criteria lead to inconsistent scores.</li>
+  <li>Common biases include <strong>position bias</strong>, <strong>verbosity bias</strong>, and <strong>self-enhancement bias</strong> — all of which can be mitigated through careful design.</li>
+  <li>Running the judge <strong>multiple times</strong> and aggregating results significantly improves reliability.</li>
+  <li>LLM judges integrate naturally into agent workflows as <strong>self-refinement loops</strong>, <strong>multi-agent selectors</strong>, and <strong>quality gates</strong>.</li>
+  <li>For production systems, <strong>combine LLM judges with traditional metrics</strong> — use fast heuristics as a first pass and reserve LLM evaluation for nuanced or borderline cases.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> we'll explore how to build evaluation pipelines that combine multiple judges, human feedback, and automated metrics into a comprehensive agent evaluation framework. You'll learn how to orchestrate these components into a single, reusable evaluation harness.</p>
+
+  <div class="lesson-nav">
+    <a href="2002.html" class="btn btn-secondary">&larr; Previous: Defining Success Metrics</a>
+    <a href="2004.html" class="btn btn-secondary">Next: Building Eval Datasets &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-20-3">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(20, 3)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 20;
+const CURRENT_LESSON = 3;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
