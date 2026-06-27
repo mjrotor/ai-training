@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LangChain Overview — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-21-1">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-2">Phase 2</a> / Day 21, Lesson 1</div>
+    <div class="lesson-number">Day 21, Lesson 1 of 5</div>
+    <h1 class="lesson-title">LangChain Overview</h1>
+    <p class="lesson-desc">Learn about langchain overview.</p>
+  </div>
+
+<h2>What is LangChain?</h2>
+
+<p>LangChain is a powerful open-source framework designed to help developers build applications powered by large language models (LLMs). Think of it as a toolkit that connects your language models to external data sources, tools, and workflows — making it much easier to build everything from chatbots to complex AI agent pipelines.</p>
+
+<p>Instead of writing boilerplate code every time you want to integrate an LLM with a database, API, or custom tool, LangChain provides standardized abstractions and pre-built components that handle the heavy lifting for you.</p>
+
+<div class="callout callout-info">
+  <strong>Why LangChain Matters:</strong> Before frameworks like LangChain, building LLM-powered applications required manually managing prompts, API calls, memory, and tool integrations. LangChain abstracts these patterns into reusable, composable components.
+</div>
+
+<h2>Core Concepts of LangChain</h2>
+
+<p>LangChain is built around several key abstractions. Understanding these will give you a solid foundation for building AI agents and LLM applications.</p>
+
+<h3>1. Models</h3>
+
+<p>LangChain provides a unified interface for interacting with various LLM providers — OpenAI, Anthropic, Hugging Face, Google, and many others. You can swap between providers with minimal code changes.</p>
+
+<pre><code>from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
+
+# Using OpenAI's GPT-4
+openai_llm = ChatOpenAI(model="gpt-4", temperature=0.7)
+
+# Using Anthropic's Claude
+claude_llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=0.7)
+
+# Both can be called the same way
+response = openai_llm.invoke("What is an AI agent?")
+print(response.content)</code></pre>
+
+<h3>2. Prompts</h3>
+
+<p>LangChain offers a structured way to create and manage prompts using <code>PromptTemplate</code>. This makes it easy to dynamically inject variables into your prompts without messy string concatenation.</p>
+
+<pre><code>from langchain_core.prompts import PromptTemplate
+
+template = PromptTemplate(
+    input_variables=["topic", "audience"],
+    template="Explain {topic} to a {audience} in 3 sentences or less."
+)
+
+formatted = template.format(topic="neural networks", audience="10-year-old")
+print(formatted)
+# Output: "Explain neural networks to a 10-year-old in 3 sentences or less."
+
+response = openai_llm.invoke(formatted)
+print(response.content)</code></pre>
+
+<h3>3. Chains</h3>
+
+<p>Chains are sequences of operations that combine prompts, models, and other processing steps. The simplest chain is an <code>LLMChain</code>, which takes a prompt template and a model, then runs them together.</p>
+
+<pre><code>from.chains import LLMChain
+
+# Older style (still widely used)
+chain = LLMChain(llm=openai_llm, prompt=template)
+result = chain.run(topic="quantum computing", audience="college student")
+print(result)
+
+# Modern LCEL style (recommended)
+chain = template | openai_llm
+result = chain.invoke({"topic": "quantum computing", "audience": "college student"})
+print(result.content)</code></pre>
+
+<div class="callout callout-tip">
+  <strong>Pro Tip:</strong> LangChain now recommends using LCEL (LangChain Expression Language) with the pipe operator (<code>|</code>) to build chains. It's more readable, supports streaming, and enables parallel execution.
+</div>
+
+<h3>4. Memory</h3>
+
+<p>By default, LLMs are stateless — they don't remember previous interactions. LangChain's <code>Memory</code> components allow your application to retain context across conversation turns.</p>
+
+<pre><code>from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationChain
+
+memory = ConversationBufferMemory(return_messages=True)
+
+conversation = ConversationChain(
+    llm=openai_llm,
+    memory=memory,
+    verbose=True
+)
+
+# First turn
+response1 = conversation.predict(input="My name is Alex.")
+print(response1)
+
+# Second turn — the model remembers your name!
+response2 = conversation.predict(input="What's my name?")
+print(response2)
+# Output: "Your name is Alex! You told me that earlier."</code></pre>
+
+<h3>5. Tools</h3>
+
+<p>Tools are functions that your LLM can call to perform actions beyond text generation — searching the web, querying databases, making calculations, or calling APIs. This is the foundation of building AI agents.</p>
+
+<pre><code>from langchain_core.tools import tool
+
+@tool
+def get_weather(city: str) -> str:
+    """Get the current weather for a given city."""
+    # In a real app, you'd call a weather API here
+    return f"The weather in {city} is 72°F and sunny."
+
+@tool
+def calculate(expression: str) -> str:
+    """Evaluate a mathematical expression."""
+    try:
+        result = eval(expression)
+        return f"The result is {result}"
+    except Exception as e:
+        return f"Error: {e}"
+
+tools = [get_weather, calculate]
+print(get_weather.args)
+# {'city': {'title': 'City', 'type': 'str'}}</code></pre>
+
+<h3>6. Agents</h3>
+
+<p>An agent is an LLM that can decide which tools to use and in what order to accomplish a task. Instead of a fixed chain of operations, the agent reasons about what to do next, takes an action, observes the result, and repeats until the task is complete.</p>
+
+<pre><code>from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain_core.prompts import ChatPromptTemplate
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful assistant with access to tools."),
+    ("human", "{input}"),
+    ("placeholder", "{agent_scratchpad}")
+])
+
+agent = create_tool_calling_agent(openai_llm, tools, prompt)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+result = agent_executor.invoke({
+    "input": "What's the weather in Tokyo and what's 25 * 17?"
+})
+print(result["output"])</code></pre>
+
+<div class="callout callout-warn">
+  <strong>Important:</strong> Not all models support tool-calling natively. Make sure you use a model that has been fine-tuned for function calling, such as GPT-4, Claude, or Gemini. Using a model without tool-calling support will result in errors.
+</div>
+
+<h2>LangChain vs. Other Frameworks</h2>
+
+<p>LangChain isn't the only framework for building LLM applications. Here's how it compares to other popular options:</p>
+
+<table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse;">
+  <thead>
+    <tr style="background-color:#f2f2f2;">
+      <th>Feature</th>
+      <th>LangChain</th>
+      <th>LlamaIndex</th>
+      <th>Semantic Kernel</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Primary Focus</strong></td>
+      <td>General LLM app framework</td>
+      <td>Data retrieval &amp; RAG</td>
+      <td>Enterprise AI orchestration</td>
+    </tr>
+    <tr>
+      <td><strong>Language</strong></td>
+      <td>Python &amp; TypeScript</td>
+      <td>Python</td>
+      <td>C#, Python, Java</td>
+    </tr>
+    <tr>
+      <td><strong>Agent Support</strong></td>
+      <td>Excellent (native agents)</td>
+      <td>Good (via integrations)</td>
+      <td>Good (planners &amp; plugins)</td>
+    </tr>
+    <tr>
+      <td><strong>RAG Capabilities</strong></td>
+      <td>Good (built-in retrievers)</td>
+      <td>Excellent (core focus)</td>
+      <td>Good (memory store)</td>
+    </tr>
+    <tr>
+      <td><strong>Learning Curve</strong></td>
+      <td>Moderate</td>
+      <td>Low for RAG basics</td>
+      <td>Low-Moderate</td>
+    </tr>
+    <tr>
+      <td><strong>Best For</strong></td>
+      <td>Agents, chains, complex workflows</td>
+      <td>Document Q&amp;A, knowledge bases</td>
+      <td>Microsoft ecosystem, enterprise</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>LangChain's Ecosystem</h2>
+
+<p>LangChain is more than a single library — it's an ecosystem of packages that work together:</p>
+
+<ul>
+  <li><strong>langchain-core:</strong> Base abstractions and LCEL. Lightweight and essential.</li>
+  <li><strong>langchain:</strong> Higher-level chains, agents, and retrieval logic.</li>
+  <li><strong>langchain-openai / langchain-anthropic:</strong> Provider-specific integrations.</li>
+  <li><strong>LangGraph:</strong> Extension for building stateful, multi-agent workflows with graph-based control flow.</li>
+  <li><strong>LangSmith:</strong> Observability and debugging platform for LangChain applications.</li>
+  <li><strong>LangServe:</strong> Deploy chains as REST APIs with a single command.</li>
+</ul>
+
+<pre><code># Installing the core packages
+pip install langchain langchain-core langchain-openai
+
+# For agent-specific features
+pip install langchain-community
+
+# For deploying as an API
+pip install langserve</code></pre>
+
+<h2>Building Your First LangChain Agent</h2>
+
+<p>Let's put it all together by building a simple agent that can search for information and perform calculations.</p>
+
+<pre><code>from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
+from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain_core.prompts import ChatPromptTemplate
+
+# Define tools
+@tool
+def search_web(query: str) -> str:
+    """Search the web for information about a topic."""
+    # Simulated search results
+    results = {
+        "python": "Python is a versatile programming language created by Guido van Rossum in 1991.",
+        "langchain": "LangChain is a framework for building LLM-powered applications.",
+        "ai agents": "AI agents are autonomous systems that can reason, plan, and use tools."
+    }
+    for key, value in results.items():
+        if key in query.lower():
+            return value
+    return f"No results found for '{query}'."
+
+@tool
+def calculator(expression: str) -> str:
+    """Calculate a mathematical expression."""
+    try:
+        return str(eval(expression))
+    except:
+        return "Invalid expression."
+
+# Set up the model and agent
+llm = ChatOpenAI(model="gpt-4", temperature=0)
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a research assistant. Use tools to find information and perform calculations."),
+    ("human", "{input}"),
+    ("placeholder", "{agent_scratchpad}")
+])
+
+tools = [search_web, calculator]
+agent = create_tool_calling_agent(llm, tools, prompt)
+executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+# Run the agent
+result = executor.invoke({
+    "input": "Tell me about LangChain and also calculate 144 / 12 + 8"
+})
+print(result["output"])</code></pre>
+
+<div class="callout callout-info">
+  <strong>What Just Happened?</strong> The agent received the user input, decided to call the <code>search_web</code> tool for the LangChain query, called the <code>calculator</code> tool for the math, and then synthesized both results into a coherent response. This is the power of agentic workflows!
+</div>
+
+<h2>Exercise</h2>
+
+<div class="exercise">
+  <div class="exercise-header">Exercise: Create a Custom Tool and Agent</div>
+  <div class="exercise-body">
+    <p>Create a new tool called <code>word_count</code> that takes a string and returns the number of words in it. Then, integrate this tool into an agent alongside the <code>calculator</code> tool we defined above. Test it by asking the agent to count the words in a sentence and perform a calculation.</p>
+    <p><strong>Requirements:</strong></p>
+    <ul>
+      <li>Define the <code>word_count</code> tool using the <code>@tool</code> decorator</li>
+      <li>Include a proper docstring so the LLM understands what the tool does</li>
+      <li>Create an agent that has access to both <code>word_count</code> and <code>calculator</code></li>
+      <li>Test with an input that requires both tools</li>
+    </ul>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+<pre><code>from langchain_core.tools import tool
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain_core.prompts import ChatPromptTemplate
+
+@tool
+def word_count(text: str) -> str:
+    """Count the number of words in a given text string."""
+    count = len(text.split())
+    return f"The text contains {count} words."
+
+@tool
+def calculator(expression: str) -> str:
+    """Calculate a mathematical expression."""
+    try:
+        return str(eval(expression))
+    except:
+        return "Invalid expression."
+
+llm = ChatOpenAI(model="gpt-4", temperature=0)
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful assistant. Use tools when needed."),
+    ("human", "{input}"),
+    ("placeholder", "{agent_scratchpad}")
+])
+
+tools = [word_count, calculator]
+agent = create_tool_calling_agent(llm, tools, prompt)
+executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+result = executor.invoke({
+    "input": "Count the words in 'The quick brown fox jumps over the lazy dog' and multiply that by 3"
+})
+print(result["output"])
+# Expected: Agent counts 9 words, calculates 9 * 3 = 27</code></pre>
+  </div>
+</div>
+
+<h2>Common Pitfalls and Best Practices</h2>
+
+<p>As you start building with LangChain, keep these tips in mind:</p>
+
+<ul>
+  <li><strong>Always set <code>temperature</code> appropriately:</strong> Use <code>temperature=0</code> for factual, deterministic responses. Use higher values (0.7–1.0) for creative tasks.</li>
+  <li><strong>Use <code>verbose=True</strong> during development:</strong> This shows you the agent's reasoning process, tool calls, and intermediate steps — invaluable for debugging.</li>
+  <li><strong>Write clear tool docstrings:</strong> The LLM reads your docstrings to understand what each tool does. Be specific and descriptive.</li>
+  <li><strong>Handle errors gracefully:</strong> Tools can fail. Make sure your tool functions return meaningful error messages rather than raising exceptions.</li>
+  <li><strong>Be mindful of token limits:</strong> Long conversations or large tool outputs can exceed the model's context window. Use <code>ConversationSummaryMemory</code> or truncate inputs when needed.</li>
+</ul>
+
+<div class="callout callout-warn">
+  <strong>Security Warning:</strong> Never use <code>eval()</code> on untrusted input in production code. The calculator example above is for demonstration only. In a real application, use a safe math parsing library like <code>simpleeval</code>.
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+  <li>LangChain is a comprehensive framework for building LLM-powered applications with standardized abstractions for models, prompts, chains, memory, tools, and agents.</li>
+  <li><strong>PromptTemplates</strong> allow you to dynamically build prompts with variable injection, keeping your code clean and maintainable.</li>
+  <li><strong>Chains</strong> (especially using LCEL with the <code>|</code> operator) let you compose prompts, models, and processors into reusable pipelines.</li>
+  <li><strong>Memory</strong> components give your LLM applications the ability to retain context across conversation turns, enabling natural multi-turn interactions.</li>
+  <li><strong>Tools</strong> extend your LLM's capabilities beyond text generation, allowing it to perform calculations, search data, call APIs, and more.</li>
+  <li><strong>Agents</strong> combine LLMs with tools, enabling the model to autonomously decide which actions to take and in what order to complete complex tasks.</li>
+  <li>The LangChain ecosystem includes LangGraph for complex workflows, LangSmith for observability, and LangServe for deployment — all designed to work together seamlessly.</li>
+  <li>LangChain competes with frameworks like LlamaIndex (focused on RAG) and Semantic Kernel (enterprise-focused), but stands out for its agent-building capabilities and broad provider support.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> We'll dive deeper into LangGraph, LangChain's extension for building stateful, multi-agent workflows. You'll learn how to create agents that can loop, branch, and collaborate — moving beyond single-agent systems into truly autonomous AI workflows.</p>
+
+  <div class="lesson-nav">
+    <a href="2005.html" class="btn btn-secondary">&larr; Previous: Day 20, Lesson 5</a>
+    <a href="2102.html" class="btn btn-secondary">Next: Building a Chain &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-21-1">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(21, 1)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 21;
+const CURRENT_LESSON = 1;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
