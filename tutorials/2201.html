@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LlamaIndex Overview — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-22-1">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-2">Phase 2</a> / Day 22, Lesson 1</div>
+    <div class="lesson-number">Day 22, Lesson 1 of 5</div>
+    <h1 class="lesson-title">LlamaIndex Overview</h1>
+    <p class="lesson-desc">Learn about llamaindex overview.</p>
+  </div>
+
+<h2>What is LlamaIndex?</h2>
+
+<p>If you've been following along through Phase 2, you've already learned the fundamentals of building with large language models. Now it's time to level up. <strong>LlamaIndex</strong> is one of the most popular frameworks for building AI agents and RAG (Retrieval-Augmented Generation) applications. Think of it as the connective tissue between your data and your LLM.</p>
+
+<p>At its core, LlamaIndex gives you the tools to:</p>
+
+<ul>
+  <li>Ingest data from virtually anywhere — PDFs, databases, APIs, Notion, Google Docs, and more</li>
+  <li>Structure that data into formats LLMs can reason over efficiently</li>
+  <li>Build indexes that allow fast, relevant retrieval of information</li>
+  <li>Create query engines and chat agents that combine retrieval with LLM generation</li>
+</ul>
+
+<p>Instead of manually chunking documents, writing embedding code, and orchestrating prompt calls yourself, LlamaIndex provides a clean, high-level abstraction for all of it.</p>
+
+<div class="callout callout-info">
+  <strong>Note:</strong> LlamaIndex was originally built for Llama models, but it now supports virtually every major LLM provider including OpenAI, Anthropic, Google, Mistral, and more. The name is historical at this point.
+</div>
+
+<h2>Installing LlamaIndex</h2>
+
+<p>Before we dive into code, let's get LlamaIndex installed. You can install the core package with pip:</p>
+
+<pre><code>pip install llama-index</code></pre>
+
+<p>If you want to use a specific LLM provider, you'll also install the corresponding integration package. For example, with OpenAI:</p>
+
+<pre><code>pip install llama-index-llms-openai</code></pre>
+
+<p>Or with a local model via Ollama:</p>
+
+<pre><code>pip install llama-index-llms-ollama</code></pre>
+
+<div class="callout callout-tip">
+  <strong>Tip:</strong> If you're experimenting and want to try multiple providers, you can install several integration packages at once. LlamaIndex will automatically detect which one to use based on your configuration.
+</div>
+
+<h2>Core Concepts: Indexes, Engines, and Agents</h2>
+
+<p>LlamaIndex has a layered architecture. Understanding the three main layers will help you design effective systems.</p>
+
+<h3>1. Indexes</h3>
+
+<p>An <strong>index</strong> is a data structure built on top of your documents. It's the foundation of everything in LlamaIndex. When you create an index, LlamaIndex:</p>
+
+<ol>
+  <li>Loads your raw documents (called <strong>Documents</strong>)</li>
+  <li>Splits them into smaller pieces (called <strong>Nodes</strong>)</li>
+  <li>Optionally generates embeddings for each node</li>
+  <li>Stores everything in a structured format for fast retrieval</li>
+</ol>
+
+<p>The most common index type is the <strong>VectorStoreIndex</strong>, which creates embeddings and allows semantic search over your data.</p>
+
+<pre><code>from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+
+# Load documents from a directory
+documents = SimpleDirectoryReader("data").load_data()
+
+# Build a vector index
+index = VectorStoreIndex.from_documents(documents)
+
+print(f"Index created with {len(documents)} documents")
+print(f"Total nodes in index: {index.index_struct.num_nodes}")</code></pre>
+
+<h3>2. Engines</h3>
+
+<p>An <strong>engine</strong> is an interface that lets you interact with your index (or directly with an LLM). Think of engines as the "query layer." There are several types:</p>
+
+<ul>
+  <li><strong>QueryEngine</strong> — Send a question, get a response based on your indexed data</li>
+  <li><strong>ChatEngine</strong> — Same as QueryEngine but maintains conversation history</li>
+  <li><strong>Retriever</strong> — Retrieve relevant nodes without LLM generation (useful for inspection)</li>
+</ul>
+
+<pre><code># Create a query engine from the index
+query_engine = index.as_query_engine()
+
+# Ask a question
+response = query_engine.query("What is the main topic of the documents?")
+print(response)
+
+# Or create a chat engine for multi-turn conversations
+chat_engine = index.as_chat_engine()
+response = chat_engine.chat("Tell me about the project")
+print(response)</code></pre>
+
+<h3>3. Agents</h3>
+
+<p>An <strong>agent</strong> goes beyond simple Q&A. It can reason about which tools to use, call external APIs, run computations, and make decisions — all powered by an LLM. LlamaIndex agents can use your query engines as tools, along with any custom tools you define.</p>
+
+<pre><code>from llama_index.core.tools import QueryEngineTool, ToolMetadata
+from llama_index.core.agent import ReActAgent
+
+# Create a tool from your query engine
+query_tool = QueryEngineTool(
+    query_engine=query_engine,
+    metadata=ToolMetadata(
+        name="document_search",
+        description="Search the document knowledge base for answers"
+    )
+)
+
+# Build an agent with tools
+agent = ReActAgent.from_tools(
+    tools=[query_tool],
+    llm=your_llm,
+    verbose=True
+)
+
+# The agent decides when to use the tool
+response = agent.chat("Summarize the key findings and list action items")
+print(response)</code></pre>
+
+<h2>Data Ingestion: Reading Your Documents</h2>
+
+<p>One of LlamaIndex's biggest strengths is its <strong>Readers</strong> ecosystem. It supports over 100 data sources out of the box. Let's look at the most common patterns.</p>
+
+<h3>Reading from a Directory</h3>
+
+<p>The simplest way to get started is loading all files from a folder:</p>
+
+<pre><code>from llama_index.core import SimpleDirectoryReader
+
+# Reads all supported files in the "data/" directory
+documents = SimpleDirectoryReader("data").load_data()
+
+# You can also filter by file extension
+documents = SimpleDirectoryReader(
+    "data",
+    required_exts=[".pdf", ".md", ".txt"]
+).load_data()
+
+# Access metadata
+for doc in documents[:3]:
+    print(f"File: {doc.metadata.get('file_name', 'unknown')}")
+    print(f"Length: {len(doc.text)} characters")
+    print("---")</code></pre>
+
+<h3>Reading from Specific Sources</h3>
+
+<p>For databases, APIs, and cloud services, LlamaIndex has dedicated readers:</p>
+
+<pre><code># Example: Reading from a SQL database
+from llama_index.readers.database import DatabaseReader
+
+reader = DatabaseReader(
+    scheme="postgresql",
+    host="localhost",
+    port=5432,
+    user="admin",
+    password="secret",
+    dbname="mydb"
+)
+
+# Query specific data into Documents
+documents = reader.load_data(
+    query="SELECT * FROM knowledge_base WHERE category = 'research'"
+)</code></pre>
+
+<div class="callout callout-warn">
+  <strong>Warning:</strong> When loading from large databases or APIs, be mindful of token limits. Consider filtering and paginating your queries to avoid overwhelming your LLM's context window.
+</div>
+
+<h2>Index Types: Choosing the Right One</h2>
+
+<p>Not all indexes are the same. The right choice depends on your use case. Here's a comparison of the most common types:</p>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+  <thead>
+    <tr>
+      <th>Index Type</th>
+      <th>Best For</th>
+      <th>Requires Embeddings</th>
+      <th>Speed</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>VectorStoreIndex</td>
+      <td>Semantic search, RAG</td>
+      <td>Yes</td>
+      <td>Fast (with vector DB)</td>
+    </tr>
+    <tr>
+      <td>SummaryIndex</td>
+      <td>Sequential/hierarchical summaries</td>
+      <td>No</td>
+      <td>Moderate</td>
+    </tr>
+    <tr>
+      <td>KeywordTableIndex</td>
+      <td>Exact keyword matching</td>
+      <td>No</td>
+      <td>Very fast</td>
+    </tr>
+    <tr>
+      <td>TreeIndex</td>
+      <td>Hierarchical document structure</td>
+      <td>Yes</td>
+      <td>Moderate</td>
+    </tr>
+    <tr>
+      <td>KnowledgeGraphIndex</td>
+      <td>Entity relationships, graph queries</td>
+      <td>Yes</td>
+      <td>Slower</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>For most RAG applications, <strong>VectorStoreIndex</strong> is the right starting point. You can always experiment with other index types later.</p>
+
+<h2>Query Engines in Depth</h2>
+
+<p>Query engines are where the magic happens. Let's explore the different configurations and modes available.</p>
+
+<h3>Synchronous vs. Asynchronous Queries</h3>
+
+<p>LlamaIndex supports both sync and async patterns:</p>
+
+<pre><code># Synchronous query
+response = query_engine.query("What are the key benefits?")
+print(response)
+
+# Asynchronous query (great for web applications)
+import asyncio
+
+async def main():
+    response = await query_engine.aquery("What are the key benefits?")
+    print(response)
+
+asyncio.run(main())</code></pre>
+
+<h3>Streaming Responses</h3>
+
+<p>For chat interfaces, streaming provides a much better user experience:</p>
+
+<pre><code># Streaming query
+query_engine = index.as_query_engine(streaming=True)
+response = query_engine.query("Explain the architecture")
+
+# Print tokens as they arrive
+response.print_response_stream()</code></pre>
+
+<h3>Customizing the Prompt</h3>
+
+<p>You can customize the system prompt and context template:</p>
+
+<pre><code>from llama_index.core import PromptTemplate
+
+custom_qa_template = PromptTemplate(
+    "You are a helpful research assistant.\n"
+    "Context information is below:\n"
+    "---------------------\n"
+    "{context_str}\n"
+    "---------------------\n"
+    "Given this context, answer: {query_str}\n"
+    "If you don't know, say 'I don't have enough information.'"
+)
+
+query_engine = index.as_query_engine(text_qa_template=custom_qa_template)
+response = query_engine.query("What methodology was used?")
+print(response)</code></pre>
+
+<h2>Building a RAG Pipeline: Full Example</h2>
+
+<p>Let's put everything together into a complete RAG pipeline. This example demonstrates the full workflow from document loading to query answering.</p>
+
+<pre><code>import os
+from llama_index.core import (
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    Settings
+)
+from llama_index.llms.openai import OpenAI
+from llama_index.embeddings.openai import OpenAIEmbedding
+
+# Step 1: Configure global settings
+Settings.llm = OpenAI(model="gpt-4", temperature=0)
+Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
+
+# Step 2: Load documents
+print("Loading documents...")
+documents = SimpleDirectoryReader("data/reports").load_data()
+print(f"Loaded {len(documents)} documents")
+
+# Step 3: Build the index
+print("Building index...")
+index = VectorStoreIndex.from_documents(
+    documents,
+    show_progress=True
+)
+
+# Step 4: Persist the index (save to disk)
+index.storage_context.persist(persist_dir="./storage")
+print("Index saved to ./storage")
+
+# Step 5: Create a query engine
+query_engine = index.as_query_engine(
+    similarity_top_k=3,
+    streaming=True
+)
+
+# Step 6: Query
+print("\nQuerying...")
+response = query_engine.query(
+    "What were the three most significant findings in the reports?"
+)
+response.print_response_stream()
+
+# Step 7: Inspect what was retrieved
+print("\n--- Source Nodes ---")
+for node in response.source_nodes:
+    print(f"Score: {node.score:.3f}")
+    print(f"Source: {node.metadata.get('file_name', 'unknown')}")
+    print(f"Text: {node.text[:100]}...")
+    print("---")</code></pre>
+
+<h2>Storing Indexes: In-Memory vs. Persistent</h2>
+
+<p>By default, LlamaIndex stores indexes in memory. When your Python process ends, the index is gone. For production applications, you'll want persistent storage.</p>
+
+<h3>Using Built-in Vector Stores</h3>
+
+<pre><code># ChromaDB (great for development)
+# pip install llama-index-vector-stores-chroma
+from llama_index.vector_stores.chroma import ChromaVectorStore
+import chromadb
+
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+chroma_collection = chroma_client.get_or_create_collection("my_collection")
+vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+
+index = VectorStoreIndex.from_documents(
+    documents,
+    vector_store=vector_store
+)
+
+# The index is now persisted in ChromaDB
+# To reload later:
+# index = VectorStoreIndex.from_vector_store(vector_store)</code></pre>
+
+<h3>Using Remote Vector Databases</h3>
+
+<p>For production deployments, consider dedicated vector databases:</p>
+
+<ul>
+  <li><strong>Qdrant</strong> — High performance, supports filtering</li>
+  <li><strong>Pinecone</strong> — Fully managed, serverless option</li>
+  <li><strong>Weaviate</strong> — Built-in vectorization modules</li>
+  <li><strong>pgvector</strong> — Extend your existing PostgreSQL database</li>
+</ul>
+
+<div class="callout callout-tip">
+  <strong>Tip:</strong> Start with an in-memory index for prototyping. Switch to a persistent vector store only when you need to serve multiple users or restart your application without rebuilding the index.
+</div>
+
+<h2>Hands-On Exercise</h2>
+
+<div class="exercise">
+  <div class="exercise-header">Exercise</div>
+  <div class="exercise-body">
+    <p>You have a folder called <code>notes/</code> containing several Markdown files with meeting notes from your team. Your task is to:</p>
+    <ol>
+      <li>Load all Markdown files from the <code>notes/</code> directory</li>
+      <li>Build a VectorStoreIndex from the documents</li>
+      <li>Create a query engine that returns the top 5 most similar chunks</li>
+      <li>Write a query that asks: "What were the main decisions made in the meetings?"</li>
+      <li> and the source file names for each retrieved node</li>
+    </ol>
+    <p>Complete the code skeleton below:</p>
+    <pre><code>from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.llms.openai import OpenAI
+
+Settings.llm = OpenAI(model="gpt-3.5-turbo")
+
+# Your code here...
+# 1. Load documents from notes/
+# 2. Build index
+# 3. Create query engine with top_k=5
+# 4. Query about meeting decisions
+# 5. Print response and source files</code></pre>
+  </div>
+</div>
+
+<div class="answer-reveal">
+  <button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+  <div class="answer-content" id="answer-1">
+    <pre><code>from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.llms.openai import OpenAI
+
+Settings.llm = OpenAI(model="gpt-3.5-turbo")
+
+# 1. Load documents from notes/
+documents = SimpleDirectoryReader(
+    "notes",
+    required_exts=[".md"]
+).load_data()
+print(f"Loaded {len(documents)} documents")
+
+# 2. Build index
+index = VectorStoreIndex.from_documents(documents)
+
+# 3. Create query engine with top_k=5
+query_engine = index.as_query_engine(similarity_top_k=5)
+
+# 4. Query about meeting decisions
+response = query_engine.query(
+    "What were the main decisions made in the meetings?"
+)
+
+# 5. Print response and source files
+print("=== Response ===")
+print(response)
+
+print("\n=== Source Files ===")
+for i, node in enumerate(response.source_nodes):
+    file_name = node.metadata.get("file_name", "unknown")
+    score = node.score
+    print(f"  {i+1}. {file_name} (score: {score:.3f})")</code></pre>
+  </div>
+</div>
+
+<h2>Key Takeaways</h2>
+
+<ul>
+  <li><strong>LlamaIndex is a data framework for LLM applications</strong> — it bridges the gap between your data and language models, handling ingestion, structuring, indexing, and querying.</li>
+  <li><strong>The three core layers are Indexes, Engines, and Agents</strong> — indexes store your structured data, engines provide query interfaces, and agents add reasoning and tool-use capabilities.</li>
+  <li><strong>VectorStoreIndex is the most common index type</strong> — it creates embeddings for semantic search and powers most RAG applications.</li>
+  <li><strong>LlamaIndex supports 100+ data sources</strong> — from local files to databases, APIs, and cloud services, making it easy to bring your existing data into L>
+  <li><strong>Query engines are highly configurable</strong> — you can customize prompts, enable streaming, adjust retrieval parameters, and choose sync or async execution.</li>
+  <li><strong>Persistent storage is essential for production</strong> — use vector databases like ChromaDB, Qdrant, or Pinecone to avoid rebuilding indexes on every restart.</li>
+  <li><strong>Agents combine query engines with tool use</strong> — they can decide when to search your data, when to call external APIs, and when to reason independently.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> We'll dive deeper into <strong>tool use and function calling</strong> with LlamaIndex. You'll learn how to build custom tools, integrate external APIs, and create agents that can take actions — not just answer questions. This is where your AI applications truly become agents rather than simple chatbots.</p>
+
+  <div class="lesson-nav">
+    <a href="2105.html" class="btn btn-secondary">&larr; Previous: Day 21, Lesson 5</a>
+    <a href="2202.html" class="btn btn-secondary">Next: Building an Index &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-22-1">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(22, 1)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 22;
+const CURRENT_LESSON = 1;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
