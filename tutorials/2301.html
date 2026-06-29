@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrewAI Overview — AI Training</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>&#x1F916; AI Training</h1>
+    <p>Learn to Build AI Agents</p>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+  <div id="nav-items"></div>
+</nav>
+
+<main class="main">
+<div class="content">
+
+<div class="lesson active" id="lesson-23-1">
+  <div class="lesson-header">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / <a href="../index.html#phase-2">Phase 2</a> / Day 23, Lesson 1</div>
+    <div class="lesson-number">Day 23, Lesson 1 of 5</div>
+    <h1 class="lesson-title">CrewAI Overview</h1>
+    <p class="lesson-desc">Learn about crewai overview.</p>
+  </div>
+
+<h2>What is CrewAI?</h2>
+<p>CrewAI is an open-source Python framework that lets you build teams of AI agents that work together to accomplish complex tasks. Think of it like assembling a project team — each agent has a specific role, set of skills, and goal, and they collaborate to get the job done. Instead of relying on a single AI to handle everything, CrewAI allows you to distribute work across multiple specialized agents, much like you would in a real-world team.</p>
+
+<p>At its core, CrewAI is built on top of <strong>LangChain</strong> and is designed to be intuitive for developers who are already familiar with Python. It provides a structured way to define agents, assign tasks to them, and orchestrate how they interact with each other and with external tools.</p>
+
+<div class="callout callout-info">
+<strong>Why "Crew"?</strong> The name comes from the idea of a "crew" — a group of people (or in this case, AI agents) working together toward a common objective. Just like a film crew has a director, camera operators, and sound engineers, a CrewAI project has agents with distinct responsibilities.
+</div>
+
+<h2>Core Concepts in CrewAI</h2>
+<p>Before we start writing code, let's understand the four foundational building blocks of any CrewAI project:</p>
+
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Description</th>
+<th>Analogy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Agent</strong></td>
+<td>An AI persona with a role, goal, and backstory</td>
+<td>A team member (e.g., a researcher, a writer)</td>
+</tr>
+<tr>
+<td><strong>Task</strong></td>
+<td>A specific unit of work assigned to an agent</td>
+<td>A job assignment or deliverable</td>
+</tr>
+<tr>
+<td><strong>Tool</strong></td>
+<td>A function or capability an agent can use (e.g., web search, file reading)</td>
+<td>Equipment or software the team member uses</td>
+</tr>
+<tr>
+<td><strong>Crew</strong></td>
+<td>The team of agents, their tasks, and how they collaborate</td>
+<td>The entire project team and its workflow</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Agents</h3>
+<p>An <strong>agent</strong> in CrewAI is more than just a prompt. Each agent has a <em>role</em> (who they are), a <em>goal</em> (what they want to achieve), and a <em>backstory</em> (context about their experience). These attributes shape how the agent behaves and responds. Agents can also be given specific <em>tools</em> — like the ability to search the web, read files, or call APIs — that extend what they can do.</p>
+
+<h3>Tasks</h3>
+<p>A <strong>task</strong> is a specific piece of work that needs to be completed. Each task has a description, an expected output, and is assigned to a particular agent. Tasks can also depend on the output of other tasks, allowing you to build sequential or hierarchical workflows.</p>
+
+<h3>Tools</h3>
+<p><strong>Tools</strong> are the capabilities you give to agents so they can interact with the outside world. Without tools, an agent is limited to generating text based on its training data. With tools, agents can search the web, query databases, read and write files, call APIs, and much more.</p>
+
+<h3>Crew</h3>
+<p>The <strong>Crew</strong> is the orchestrating layer. It brings together your agents and tasks, defines the process by which they work (sequential, hierarchical, etc.), and manages the overall execution. When you kick off a crew, it coordinates all the agents and tasks until the work is complete.</p>
+
+<h2>Setting Up CrewAI</h2>
+<p>Let's get CrewAI installed and write our first multi-agent system. First, install the package:</p>
+
+<pre><code>pip install crewai crewai-tools</code></pre>
+
+<div class="callout callout-warn">
+<strong>Python Version:</strong> CrewAI requires Python 3.10 or higher. Make sure you're using a compatible version before installing. You can check with <code>python --version</code>.
+</div>
+
+<p>Next, you'll need to set up your API key for the LLM you want to use. CrewAI works with OpenAI, Anthropic, and other providers. For this lesson, we'll use OpenAI:</p>
+
+<pre><code>import os
+
+# Set your OpenAI API key
+os.environ["OPENAI_API_KEY"] = "your-api-key-here"</code></pre>
+
+<h2>Building Your First Crew</h2>
+<p>Let's build a simple crew with two agents: a <strong>Researcher</strong> and a <strong>Writer</strong>. The researcher will gather information on a topic, and the writer will turn that research into a polished article.</p>
+
+<pre><code>from crewai import Agent, Task, Crew
+
+# Define the Researcher agent
+researcher = Agent(
+    role="Senior Research Analyst",
+    goal="Find the most accurate and up-to-date information on given topics",
+    backstory="""You are a seasoned research analyst with 10 years of experience
+    in gathering and synthesizing information from various sources. You have a keen
+    eye for detail and a talent for identifying the most relevant data points.""",
+    verbose=True,
+    allow_delegation=False
+)
+
+# Define the Writer agent
+writer = Agent(
+    role="Technical Content Writer",
+    goal="Write clear, engaging, and well-structured content based on research",
+    backstory="""You are a talented technical writer who excels at transforming
+    complex information into accessible, reader-friendly content. You have a gift
+    for making technical topics interesting and easy to understand.""",
+    verbose=True,
+    allow_delegation=False
+)
+
+# Define the research task
+research_task = Task(
+    description="""Research the latest developments in AI agents and multi-agent
+    systems. Focus on key trends, major players, and emerging technologies
+    as of 2024.""",
+    expected_output="A comprehensive summary of the latest AI agent developments with key points and insights.",
+    agent=researcher
+)
+
+# Define the writing task
+writing_task = Task(
+    description="""Using the research provided, write a blog post about the
+    latest developments in AI agents. The post should be informative, engaging,
+    and accessible to a general tech-savvy audience.""",
+    expected_output="A well-structured blog post of approximately 4-5 paragraphs covering the key developments in AI agents.",
+    agent=writer
+)
+
+# Create the crew
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[research_task, writing_task],
+    verbose=True
+)
+
+# Kick off the crew
+result = crew.kickoff()
+print(result)</code></pre>
+
+<div class="callout callout-tip">
+<strong>Verbose Mode:</strong> Setting <code>verbose=True</code> on agents and the crew lets you see detailed logs of what each agent is thinking and doing. This is incredibly useful for debugging and understanding how your crew operates. Turn it off in production to reduce noise.
+</div>
+
+<h2>Understanding the Execution Flow</h2>
+<p>When you call <code>crew.kickoff()</code>, here's what happens behind the scenes:</p>
+
+<ol>
+<li><strong>Task Assignment:</strong> The crew assigns the first task (research) to the researcher agent.</li>
+<li><strong>Agent Reasoning:</strong> The researcher agent uses its LLM "brain" to think about the task, plans its approach, and generates a response.</li>
+<li><strong>Task Completion:</strong> The researcher produces the research output and marks the task as complete.</li>
+li><strong>Next Task:</strong> The crew assigns the writing task to the writer agent, which now has access to the researcher's output as context.</li>
+<li><strong>Final Output:</strong> The writer produces the final article, and the crew returns the result.</li>
+</ol>
+
+<p>By default, CrewAI uses a <strong>sequential process</strong>, where tasks are completed one after another. However, CrewAI also supports:</p>
+
+<ul>
+<li><strong>Hierarchical Process:</strong> A manager agent oversees the work and delegates tasks dynamically, similar to how a project manager would operate.</li>
+<li><strong>Consensual Process (planned):</strong> Agents discuss and agree on outputs before moving forward.</li>
+</ul>
+
+<h2>Adding Tools to Agents</h2>
+<p>One of the most powerful features of CrewAI is the ability to give agents tools. Let's enhance our researcher with a web search tool so it can find real-time information:</p>
+
+<pre><code>from crewai import Agent, Task, Crew
+from crewai_tools import SerperDevTool
+
+# Initialize the search tool (requires a Serper API key)
+search_tool = SerperDevTool()
+
+# Define the Researcher agent with a tool
+researcher = Agent(
+    role="Senior Research Analyst",
+    goal="Find the most accurate and up-to-date information on given topics",
+    backstory="""You are a seasoned research analyst with 10 years of experience
+    in gathering and synthesizing information from various sources.""",
+    tools=[search_tool],  # <-- Agent now has web search capability!
+    verbose=True,
+    allow_delegation=False
+)
+
+# The rest of the setup remains the same...
+research_task = Task(
+    description="""Use web search to find the latest developments in AI agents.
+    Look for recent news, research papers, and industry announcements.""",
+    expected_output="A detailed summary of the latest AI agent developments.",
+    agent=researcher
+)
+
+crew = Crew(
+    agents=[researcher],
+    tasks=[research_task],
+    verbose=True
+)
+
+result = crew.kickoff()
+print(result)</code></pre>
+
+<div class="callout callout-info">
+<strong>Popular CrewAI Tools:</strong> CrewAI comes with a rich ecosystem of built-in tools including <code>SerperDevTool</code> (web search), <code>ScrapeWebsiteTool</code> (web scraping), <code>FileReadTool</code>, <code>DirectoryReadTool</code>, <code>CodeDocsSearchTool</code>, and many more. You can also build custom tools by wrapping any Python function.
+</div>
+
+<h2>Custom Tools: Extending Agent Capabilities</h2>
+<p>Sometimes the built-in tools aren't enough. CrewAI makes it easy to create your own custom tools. Here's an example of a custom tool that reads a CSV file and returns summary statistics:</p>
+
+<pre><code>from crewai_tools import BaseTool
+import pandas as pd
+
+class CSVAnalyzerTool(BaseTool):
+    name: str = "CSV Analyzer"
+    description: str = (
+        "Analyzes a CSV file and returns summary statistics including "
+        "row count, column names, data types, and basic statistics."
+    )
+
+    def _run(self, file_path: str) -> str:
+        try:
+            df = pd.read_csv(file_path)
+            summary = f"""
+CSV File Analysis for: {file_path}
+================================
+Rows: {len(df)}
+Columns: {len(df.columns)}
+Column Names: {', '.join(df.columns.tolist())}
+Data Types:
+{df.dtypes.to_string()}
+Basic Statistics:
+{df.describe().to_string()}
+            """
+            return summary
+        except Exception as e:
+            return f"Error analyzing CSV: {str(e)}"
+
+# Use the custom tool with an agent
+analyst = Agent(
+    role="Data Analyst",
+    goal="Analyze data files and extract meaningful insights",
+    backstory="You are an expert data analyst who works with CSV files.",
+    tools=[CSVAnalyzerTool()],
+    verbose=True
+)</code></pre>
+
+<h2>Agent Collaboration and Delegation</h2>
+<p>In more complex workflows, agents may need to delegate tasks to other agents. This is controlled by the <code>allow_delegation</code> parameter:</p>
+
+<pre><code>from crewai import Agent, Task, Crew
+
+# A manager agent that can delegate work
+manager = Agent(
+    role="Project Manager",
+    goal="Coordinate the team and ensure all deliverables are completed on time",
+    backstory="""You are an experienced project manager who excels at
+    breaking down complex projects into manageable tasks and assigning
+    them to the right team members.""",
+    verbose=True,
+    allow_delegation=True  # <-- This agent can delegate tasks
+)
+
+# A specialist agent
+specialist = Agent(
+    role="Data Scientist",
+    goal="Perform advanced data analysis and modeling",
+    backstory="You are a PhD-level data scientist with expertise in ML.",
+    verbose=True,
+    allow_delegation=False  # <-- This agent focuses on its own tasks
+)
+
+# Tasks
+plan_task = Task(
+    description="Create a project plan for analyzing customer churn data",
+    expected_output="A detailed project plan with milestones and task assignments.",
+    agent=manager
+)
+
+analyze_task = Task(
+    description="Build a churn prediction model using the provided dataset",
+    expected_output="A trained model with performance metrics and feature importance analysis.",
+    agent=specialist
+)
+
+crew = Crew(
+    agents=[manager, specialist],
+    tasks=[plan_task, analyze_task],
+    verbose=True
+)
+
+result = crew.kickoff()
+print(result)</code></pre>
+
+<div class="callout callout-warn">
+<strong>Delegation Caution:</strong> While delegation is powerful, it can lead to unexpected behavior if not carefully managed. An agent with <code>allow_delegation=True</code> might reassign tasks in ways you didn't anticipate. Always test your crew thoroughly and use verbose mode to monitor what's happening.
+</div>
+
+<h2>Process Types: Sequential vs. Hierarchical</h2>
+<p>CrewAI supports different process types that control how tasks are executed:</p>
+
+<table>
+<thead>
+<tr>
+<th>Process</th>
+<th>How It Works</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sequential</strong></td>
+<td>Tasks run one after another in order. Each task's output feeds into the next.</td>
+<td>Linear workflows where each step depends on the previous one.</td>
+</tr>
+<tr>
+<td><strong>Hierarchical</strong></td>
+<td>A manager agent is automatically created to plan, delegate, and validate work.</td>
+<td>Complex projects where task order isn't known in advance.</td>
+</tr>
+</tbody>
+</table>
+
+<p>Here's how to use the hierarchical process:</p>
+
+<pre><code>from crewai import Agent, Task, Crew
+
+researcher = Agent(
+    role="Researcher",
+    goal="Conduct thorough research on assigned topics",
+    backstory="You are an expert researcher.",
+    verbose=True
+)
+
+writer = Agent(
+    role="Writer",
+    goal="Write compelling content based on research",
+    backstory="You are a skilled content writer.",
+    verbose=True
+)
+
+editor = Agent(
+    role="Editor",
+    goal="Review and polish written content",
+    backstory="You are a meticulous editor with an eye for detail.",
+    verbose=True
+)
+
+tasks = [
+    Task(
+        description="Research the impact of AI on healthcare in 2024",
+        expected_output="Detailed research notes on AI in healthcare.",
+        agent=researcher
+    ),
+    Task(
+        description="Write an article based on the research about AI in healthcare",
+        expected_output="A 500-word article on AI in healthcare.",
+        agent=writer
+    ),
+    Task(
+        description="Edit and proofread the article for clarity and accuracy",
+        expected_output="A polished, publication-ready article.",
+        agent=editor
+    )
+]
+
+# Use hierarchical process
+crew = Crew(
+    agents=[researcher, writer, editor],
+    tasks=tasks,
+    process="hierarchical",  # <-- Key difference!
+    verbose=True
+)
+
+result = crew.kickoff()
+print(result)</code></pre>
+
+<h2>Memory and Context</h2>
+<p>CrewAI agents can be configured with <strong>memory</strong>, which allows them to remember information across tasks and interactions. This is particularly useful in long-running workflows where context from earlier steps matters.</p>
+
+<pre><code>from crewai import Agent, Task, Crew
+
+agent = Agent(
+    role="Research Assistant",
+    goal="Help users find and organize information",
+    backstory="You are a helpful research assistant.",
+    memory=True,  <-- Enable memory
+    verbose=True
+)
+
+crew = Crew(
+    agents=[agent],
+    tasks=[...],
+    memory=True,  <-- Enable crew-level memory
+    verbose=True
+)</code></pre>
+
+<div class="callout callout-tip">
+<strong>Memory Matters:</strong> When memory is enabled, agents can reference information from previous tasks and conversations. This makes multi-step workflows much more coherent. However, memory also increases token usage and cost, so use it judiciously.
+</div>
+
+<h2>Putting It All Together: A Complete Example</h2>
+<p>Let's build a more realistic crew that researches a topic, writes a report, and reviews it — all with tools and proper configuration:</p>
+
+<pre><code>import os
+from crewai import Agent, Task, Crew, Process
+from crewai_tools import SerperDevTool, WebsiteSearchTool
+
+os.environ["OPENAI_API_KEY"] = "your-api-key-here"
+os.environ["SERPER_API_KEY"] = "your-serper-api-key-here"
+
+# Tools
+search_tool = SerperDevTool()
+web_search_tool = WebsiteSearchTool()
+
+# Agents
+researcher = Agent(
+    role="Lead Technology Researcher",
+    goal="Discover and analyze cutting-edge developments in {topic}",
+    backstory="""You are a world-class technology researcher at a top
+    think tank. You have a reputation for finding the most relevant
+    and impactful information on any technology topic.""",
+    tools=[search_tool, web_search_tool],
+    verbose=True,
+    allow_delegation=False,
+    max_iter=5  # Limit iterations to control costs
+)
+
+writer = Agent(
+    role="Senior Technical Writer",
+    goal="Create compelling, well-structured reports based on research findings",
+    backstory="""You are a senior technical writer known for transforming
+    complex research into clear, engaging reports that both technical and
+    non-technical stakeholders can understand.""",
+    verbose=True,
+    allow_delegation=False,
+    max_iter=5
+)
+
+reviewer = Agent(
+    role="Quality Assurance Editor",
+    goal="Ensure all reports meet high standards of accuracy and clarity",
+    backstory="""You are a meticulous editor with a background in both
+    technology and journalism. You catch errors, improve clarity, and
+    ensure consistency across all deliverables.""",
+    verbose=True,
+    allow_delegation=False,
+    max_iter=3
+)
+
+# Tasks
+research_task = Task(
+    description="""Research the latest developments in {topic}.
+    Identify key trends, major players, breakthrough technologies,
+    and potential future directions. Use web search to find the
+    most recent and reliable information.""",
+    expected_output="""A detailed research document containing:
+    - Key trends and developments
+    - Major companies and projects
+    - Breakthrough technologies
+    - Future outlook and predictions
+    - Sources and references""",
+    agent=researcher
+)
+
+writing_task = Task(
+    description="""Using the research findings, write a comprehensive
+    report about {topic}. The report should be well-structured with
+    clear sections, engaging prose, and actionable insights.""",
+    expected_output="""A polished report with the following structure:
+    - Executive Summary
+    - Key Developments
+    - Industry Impact
+    - Future Outlook
+    - Recommendations""",
+    agent=writer
+)
+
+review_task = Task(
+    description="""Review the report for accuracy, clarity, and completeness.
+    Check that all claims are supported by the research, the writing is
+    clear and engaging, and the structure is logical. Provide a final
+    polished version.""",
+    expected_output="""A final, publication-ready report with all
+    corrections and improvements applied.""",
+    agent=reviewer
+)
+
+# Assemble the crew
+tech_crew = Crew(
+    agents=[researcher, writer, reviewer],
+    tasks=[research_task, writing_task, review_task],
+    process=Process.sequential,
+    memory=True,
+    verbose=True,
+    max_rpm=10  # Rate limiting: max 10 requests per minute
+)
+
+# Execute with a specific topic
+result = tech_crew.kickoff(inputs={"topic": "Generative AI in Education"})
+print("\n===== FINAL OUTPUT =====\n")
+print(result)</code></pre>
+
+<div class="callout callout-info">
+<strong>Cost Control:</strong> Notice the <code>max_iter</code> and <code>max_rpm</code> parameters. These are important for controlling API costs. <code>max_iter</code> limits how many times an agent can loop on a task, and <code>max_rpm</code> limits API requests per minute. Always set these in production!
+</div>
+
+<h2>Common Patterns and Best Practices</h2>
+<p>As you build more CrewAI projects, keep these patterns in mind:</p>
+
+<ul>
+<li><strong>Start simple:</strong> Begin with a single agent and one task. Add complexity only when needed.</li>
+<li><strong>Be specific in descriptions:</strong> Vague task descriptions lead to vague outputs. The more specific you are about what you want, the better the results.</li>
+<li><strong>Use backstories:</strong> An agent's backstory significantly influences its behavior. Invest time in writing good backstories.</li>
+<li><strong>Limit delegation:</strong> Only enable delegation when you truly need it. Uncontrolled delegation can lead to unpredictable behavior.</li>
+<li><strong>Test incrementally:</strong> Test each agent and task individually before combining them into a crew.</li>
+<li><strong>Monitor costs:</strong> Use <code>max_iter</code>, <code>max_rpm</code>, and <code>verbose</code> mode to understand and control your API usage.</li>
+</ul>
+
+<div class="callout callout-tip">
+<strong>Pro Tip:</strong> Use the <code>expected_output</code> field in tasks to guide the agent. This acts as a quality checkpoint — the agent will try to match the expected format and content level you describe.
+</div>
+
+<h2>Coding Exercise</h2>
+<div class="exercise">
+<div class="exercise-header">Exercise</div>
+<div class="exercise-body">
+<p>Create a CrewAI project with two agents: a <strong>Market Analyst</strong> and a <strong>Strategy Consultant</strong>. The Market Analyst should research a given industry (e.g., "electric vehicles"), and the Strategy Consultant should use that research to create a market entry strategy document.</p>
+
+<p>Your solution should include:</p>
+<ul>
+<li>Two agents with appropriate roles, goals, and backstories</li>
+<li>Two tasks with clear descriptions and expected outputs</li>
+<li>A Crew that connects everything together</li>
+<li>Use of at least one tool (e.g., SerperDevTool for web search)</li>
+</ul>
+
+<p>Write the complete Python code below:</p>
+</div>
+</div>
+
+<div class="answer-reveal">
+<button class="btn" onclick="toggleAnswer('answer-1')">Show Answer</button>
+<div class="answer-content" id="answer-1">
+<pre><code>import os
+from crewai import Agent, Task, Crew
+from crewai_tools import SerperDevTool
+
+os.environ["OPENAI_API_KEY"] = "your-api-key-here"
+os.environ["SERPER_API_KEY"] = "your-serper-api-key-here"
+
+# Initialize tool
+search_tool = SerperDevTool()
+
+# Agent 1: Market Analyst
+market_analyst = Agent(
+    role="Senior Market Analyst",
+    goal="Conduct comprehensive market research and competitive analysis",
+    backstory="""You are a senior market analyst with over 15 years of
+    experience in analyzing industry trends, competitive landscapes, and
+    market opportunities. You have worked with Fortune 500 companies
+    across multiple sectors.""",
+    tools=[search_tool],
+    verbose=True,
+    allow_delegation=False,
+    max_iter=5
+)
+
+# Agent 2: Strategy Consultant
+strategy_consultant = Agent(
+    role="Senior Strategy Consultant",
+    goal="Develop actionable market entry strategies based on research data",
+    backstory="""You are a senior strategy consultant at a top-tier
+    consulting firm. You specialize in helping companies enter new
+    markets with data-driven strategies that minimize risk and
+    maximize opportunity.""",
+    verbose=True,
+    allow_delegation=False,
+    max_iter=5
+)
+
+# Task 1: Market Research
+research_task = Task(
+    description="""Conduct a thorough market analysis of the electric
+    vehicle industry. Include:
+    - Current market size and growth projections
+    - Key players and market share
+    - Regulatory landscape and government incentives
+    - Consumer trends and adoption rates
+    - Technological developments and barriers to entry""",
+    expected_output="""A comprehensive market analysis report with
+    data-driven insights on the electric vehicle industry, including
+    market size, key players, regulations, and trends.""",
+    agent=market_analyst
+)
+
+# Task 2: Strategy Development
+strategy_task = Task(
+    description="""Based on the market research, develop a detailed
+    market entry strategy for a new company looking to enter the
+    electric vehicle industry. The strategy should cover:
+    - Recommended market segment and positioning
+    - Go-to-market approach
+    - Key partnerships and alliances
+    - Investment requirements and timeline
+    - Risk assessment and mitigation strategies""",
+    expected_output="""A detailed market entry strategy document with
+    actionable recommendations, timelines, and risk assessments for
+    entering the electric vehicle market.""",
+    agent=strategy_consultant
+)
+
+# Create and run the crew
+strategy_crew = Crew(
+    agents=[market_analyst, strategy_consultant],
+    tasks=[research_task, strategy_task],
+    verbose=True,
+    memory=True
+)
+
+result = strategy_crew.kickoff()
+print("\n===== MARKET ENTRY STRATEGY =====\n")
+print(result)</code></pre>
+</div>
+</div>
+
+<h2>Key Takeaways</h2>
+<ul>
+<li><strong>CrewAI</strong> is a Python framework for building multi-agent AI systems where agents with specific roles collaborate to complete complex tasks.</li>
+<li>The four core building blocks are <strong>Agents</strong> (who does the work), <strong>Tasks</strong> (what needs to be done), <strong>Tools</strong> (capabilities agents can use), and <strong>Crew</strong> (the orchestrating layer).</li>
+<li>Agents are defined by their <em>role</em>, <em>goal</em>, <em>backstory</em>, and optional <em>tools</em> — these attributes shape their behavior and output quality.</li>
+<li>CrewAI supports <strong>sequential</strong> and <strong>hierarchical</strong> process types, giving you flexibility in how tasks are orchestrated.</li>
+<li><strong>Tools</strong> extend agent capabilities beyond text generation, enabling web search, file operations, API calls, and custom functionality.</li>
+<li>Use <code>max_iter</code>, <code>max_rpm</code>, and <code>verbose</code> mode to control costs and monitor agent behavior during development.</li>
+<li>Writing specific task descriptions and expected outputs significantly improves the quality and consistency of agent responses.</li>
+<li>Start with simple crews and incrementally add complexity — test each component individually before combining them.</li>
+</ul>
+
+<p><strong>In the next lesson...</strong> we'll dive deeper into CrewAI's tool ecosystem, learn how to build fully custom tools from scratch, and explore advanced
+
+  <div class="lesson-nav">
+    <a href="2205.html" class="btn btn-secondary">&larr; Previous: Day 22, Lesson 5</a>
+    <a href="2302.html" class="btn btn-secondary">Next: Defining Agents & Roles &rarr;</a>
+  </div>
+
+  <div class="mark-complete">
+    <div class="status" id="status-23-1">
+      <span>&#x2610;</span> Mark this lesson complete
+    </div>
+    <button class="btn btn-primary" onclick="markLessonComplete(23, 1)">
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+<script>
+const CURRICULUM = [
+  {day:1,lesson:1,phase:1,title:"What is an AI Agent?"},
+  {day:1,lesson:2,phase:1,title:"The Agent Loop"},
+  {day:1,lesson:3,phase:1,title:"Agents vs Chatbots vs Assistants"},
+  {day:1,lesson:4,phase:1,title:"Real-World Agent Examples"},
+  {day:1,lesson:5,phase:1,title:"Your First Agent Plan"},
+  {day:2,lesson:1,phase:1,title:"Choosing an LLM Provider"},
+  {day:2,lesson:2,phase:1,title:"Setting Up Your API Key"},
+  {day:2,lesson:3,phase:1,title:"Understanding Messages & Roles"},
+  {day:2,lesson:4,phase:1,title:"Temperature, Tokens & Parameters"},
+  {day:2,lesson:5,phase:1,title:"Building a Conversational Agent"},
+  {day:3,lesson:1,phase:1,title:"Why System Prompts Matter"},
+  {day:3,lesson:2,phase:1,title:"Anatomy of a Great System Prompt"},
+  {day:3,lesson:3,phase:1,title:"Few-Shot Prompting"},
+  {day:3,lesson:4,phase:1,title:"Setting Boundaries & Constraints"},
+  {day:3,lesson:5,phase:1,title:"Prompt Engineering Anti-Patterns"},
+  {day:4,lesson:1,phase:1,title:"What is a Tool?"},
+  {day:4,lesson:2,phase:1,title:"Defining Your First Tool"},
+  {day:4,lesson:3,phase:1,title:"The Agent Loop with Tools"},
+  {day:4,lesson:4,phase:1,title:"Multiple Tools & Tool Selection"},
+  {day:4,lesson:5,phase:1,title:"Error Handling for Tools"},
+  {day:5,lesson:1,phase:1,title:"Function Schemas Deep Dive"},
+  {day:5,lesson:2,phase:1,title:"Schema Best Practices"},
+  {day:5,lesson:3,phase:1,title:"Multi-Step Tool Workflows"},
+  {day:5,lesson:4,phase:1,title:"Parallel Tool Calls"},
+  {day:5,lesson:5,phase:1,title:"Production Tool Agent Pattern"},
+  {day:6,lesson:1,phase:1,title:"Why Agents Need Memory"},
+  {day:6,lesson:2,phase:1,title:"Short-Term Memory"},
+  {day:6,lesson:3,phase:1,title:"Memory Summarization"},
+  {day:6,lesson:4,phase:1,title:"External Memory Storage"},
+  {day:6,lesson:5,phase:1,title:"Building a Memory-Aware Agent"},
+  {day:7,lesson:1,phase:1,title:"What is Agent Chaining?"},
+  {day:7,lesson:2,phase:1,title:"Linear Chains"},
+  {day:7,lesson:3,phase:1,title:"Conditional Chains"},
+  {day:7,lesson:4,phase:1,title:"Building a Content Pipeline"},
+  {day:7,lesson:5,phase:1,title:"Debugging Chains"},
+  {day:8,lesson:1,phase:1,title:"Types of Agent Failures"},
+  {day:8,lesson:2,phase:1,title:"Retry Patterns"},
+  {day:8,lesson:3,phase:1,title:"Fallback Strategies"},
+  {day:8,lesson:4,phase:1,title:"Circuit Breakers"},
+  {day:8,lesson:5,phase:1,title:"Building a Resilient Agent"},
+  {day:9,lesson:1,phase:1,title:"Why Stream?"},
+  {day:9,lesson:2,phase:1,title:"Server-Sent Events (SSE)"},
+  {day:9,lesson:3,phase:1,title:"Streaming with OpenAI API"},
+  {day:9,lesson:4,phase:1,title:"Building a Streaming Chat UI"},
+  {day:9,lesson:5,phase:1,title:"Streaming + Tool Calls"},
+  {day:10,lesson:1,phase:1,title:"Designing Your Personal Assistant"},
+  {day:10,lesson:2,phase:1,title:"Building the Core Loop"},
+  {day:10,lesson:3,phase:1,title:"Adding Calendar & Email Tools"},
+  {day:10,lesson:4,phase:1,title:"Memory & Context"},
+  {day:10,lesson:5,phase:1,title:"Testing Your Assistant"},
+  {day:11,lesson:1,phase:2,title:"Why Agents Need RAG"},
+  {day:11,lesson:2,phase:2,title:"How RAG Works"},
+  {day:11,lesson:3,phase:2,title:"Embeddings Explained"},
+  {day:11,lesson:4,phase:2,title:"Chunking Strategies"},
+  {day:11,lesson:5,phase:2,title:"RAG as an Agent Tool"},
+  {day:12,lesson:1,phase:2,title:"Document Ingestion"},
+  {day:12,lesson:2,phase:2,title:"Text Splitting & Chunking"},
+  {day:12,lesson:3,phase:2,title:"Embedding & Storage"},
+  {day:12,lesson:4,phase:2,title:"Retrieval & Reranking"},
+  {day:12,lesson:5,phase:2,title:"End-to-End RAG Pipeline"},
+  {day:13,lesson:1,phase:2,title:"Vector DB Overview"},
+  {day:13,lesson:2,phase:2,title:"Chroma DB Setup"},
+  {day:13,lesson:3,phase:2,title:"Indexing & Searching"},
+  {day:13,lesson:4,phase:2,title:"Metadata Filtering"},
+  {day:13,lesson:5,phase:2,title:"Production Vector DB Patterns"},
+  {day:14,lesson:1,phase:2,title:"Beyond Pure Vector Search"},
+  {day:14,lesson:2,phase:2,title:"BM25 Keyword Search"},
+  {day:14,lesson:3,phase:2,title:"Hybrid Search"},
+  {day:14,lesson:4,phase:2,title:"Reranking with Cross-Encoders"},
+  {day:14,lesson:5,phase:2,title:"Building a Hybrid Search Agent"},
+  {day:15,lesson:1,phase:2,title:"Why Multiple Agents?"},
+  {day:15,lesson:2,phase:2,title:"Orchestrator Pattern"},
+  {day:15,lesson:3,phase:2,title:"Peer-to-Peer Pattern"},
+  {day:15,lesson:4,phase:2,title:"Pipeline Pattern"},
+  {day:15,lesson:5,phase:2,title:"Choosing the Right Pattern"},
+  {day:16,lesson:1,phase:2,title:"Communication Patterns"},
+  {day:16,lesson:2,phase:2,title:"Message Passing"},
+  {day:16,lesson:3,phase:2,title:"Shared State"},
+  {day:16,lesson:4,phase:2,title:"Negotiation & Consensus"},
+  {day:16,lesson:5,phase:2,title:"Building a Multi-Agent Chat"},
+  {day:17,lesson:1,phase:2,title:"Designing a Research Agent"},
+  {day:17,lesson:2,phase:2,title:"Web Search & Scraping Tools"},
+  {day:17,lesson:3,phase:2,title:"Source Evaluation"},
+  {day:17,lesson:4,phase:2,title:"Synthesis & Summarization"},
+  {day:17,lesson:5,phase:2,title:"Building the Full Research Agent"},
+  {day:18,lesson:1,phase:2,title:"Designing a Code Review Agent"},
+  {day:18,lesson:2,phase:2,title:"Reading Code & Diffs"},
+  {day:18,lesson:3,phase:2,title:"Static Analysis Integration"},
+  {day:18,lesson:4,phase:2,title:"Writing Review Comments"},
+  {day:18,lesson:5,phase:2,title:"Building the Full Code Review Agent"},
+  {day:19,lesson:1,phase:2,title:"Designing a Support Agent"},
+  {day:19,lesson:2,phase:2,title:"Knowledge Base Integration"},
+  {day:19,lesson:3,phase:2,title:"Intent Classification"},
+  {day:19,lesson:4,phase:2,title:"Escalation & Handoff"},
+  {day:19,lesson:5,phase:2,title:"Building the Full Support Agent"},
+  {day:20,lesson:1,phase:2,title:"Why Evaluate Agents?"},
+  {day:20,lesson:2,phase:2,title:"Defining Success Metrics"},
+  {day:20,lesson:3,phase:2,title:"LLM-as-Judge"},
+  {day:20,lesson:4,phase:2,title:"Building Eval Datasets"},
+  {day:20,lesson:5,phase:2,title:"Running Evaluations"},
+  {day:21,lesson:1,phase:2,title:"LangChain Overview"},
+  {day:21,lesson:2,phase:2,title:"Building a Chain"},
+  {day:21,lesson:3,phase:2,title:"LangChain Tools & Agents"},
+  {day:21,lesson:4,phase:2,title:"LangChain Memory"},
+  {day:21,lesson:5,phase:2,title:"LangChain RAG Agent"},
+  {day:22,lesson:1,phase:2,title:"LlamaIndex Overview"},
+  {day:22,lesson:2,phase:2,title:"Building an Index"},
+  {day:22,lesson:3,phase:2,title:"Query Engines"},
+  {day:22,lesson:4,phase:2,title:"LlamaIndex Agents"},
+  {day:22,lesson:5,phase:2,title:"LlamaIndex + LangChain Together"},
+  {day:23,lesson:1,phase:2,title:"CrewAI Overview"},
+  {day:23,lesson:2,phase:2,title:"Defining Agents & Roles"},
+  {day:23,lesson:3,phase:2,title:"Tasks & Workflows"},
+  {day:23,lesson:4,phase:2,title:"Building a Content Crew"},
+  {day:23,lesson:5,phase:2,title:"Advanced Crew Patterns"},
+  {day:24,lesson:1,phase:2,title:"AutoGen Overview"},
+  {day:24,lesson:2,phase:2,title:"AssistantAgent & UserProxyAgent"},
+  {day:24,lesson:3,phase:2,title:"Group Chat"},
+  {day:24,lesson:4,phase:2,title:"Code Execution Agents"},
+  {day:24,lesson:5,phase:2,title:"Building a Dev Team with AutoGen"},
+  {day:25,lesson:1,phase:2,title:"OpenAI Agents SDK Overview"},
+  {day:25,lesson:2,phase:2,title:"Building an Agent"},
+  {day:25,lesson:3,phase:2,title:"Handoffs"},
+  {day:25,lesson:4,phase:2,title:"Guardrails"},
+  {day:25,lesson:5,phase:2,title:"Multi-Agent Workflow"},
+  {day:26,lesson:1,phase:2,title:"Why Planning Matters"},
+  {day:26,lesson:2,phase:2,title:"Chain-of-Thought"},
+  {day:26,lesson:3,phase:2,title:"ReAct Pattern"},
+  {day:26,lesson:4,phase:2,title:"Tree-of-Thought"},
+  {day:26,lesson:5,phase:2,title:"Building a Planning Agent"},
+  {day:27,lesson:1,phase:2,title:"Web Scraping Fundamentals"},
+  {day:27,lesson:2,phase:2,title:"Scraping Tools for Agents"},
+  {day:27,lesson:3,phase:2,title:"Handling JavaScript Pages"},
+  {day:27,lesson:4,phase:2,title:"Structured Data Extraction"},
+  {day:27,lesson:5,phase:2,title:"Building a Scraping Agent"},
+  {day:28,lesson:1,phase:2,title:"API Integration Patterns"},
+  {day:28,lesson:2,phase:2,title:"Authentication & API Keys"},
+  {day:28,lesson:3,phase:2,title:"Building API Tools"},
+  {day:28,lesson:4,phase:2,title:"Rate Limiting & Pagination"},
+  {day:28,lesson:5,phase:2,title:"Building an API Integration Agent"},
+  {day:29,lesson:1,phase:2,title:"Document Types & Challenges"},
+  {day:29,lesson:2,phase:2,title:"PDF Processing"},
+  {day:29,lesson:3,phase:2,title:"OCR & Image Processing"},
+  {day:29,lesson:4,phase:2,title:"Structured Extraction"},
+  {day:29,lesson:5,phase:2,title:"Building a Document Agent"},
+  {day:30,lesson:1,phase:2,title:"Designing a Data Agent"},
+  {day:30,lesson:2,phase:2,title:"SQL & Database Tools"},
+  {day:30,lesson:3,phase:2,title:"Data Visualization"},
+  {day:30,lesson:4,phase:2,title:"Statistical Analysis"},
+  {day:30,lesson:5,phase:2,title:"Building the Full Data Agent"},
+  {day:31,lesson:1,phase:2,title:"Long-Term Memory Architecture"},
+  {day:31,lesson:2,phase:2,title:"Episodic Memory"},
+  {day:31,lesson:3,phase:2,title:"Semantic Memory"},
+  {day:31,lesson:4,phase:2,title:"Memory Retrieval Patterns"},
+  {day:31,lesson:5,phase:2,title:"Building a Long-Term Memory Agent"},
+  {day:32,lesson:1,phase:2,title:"Designing a Writing Agent"},
+  {day:32,lesson:2,phase:2,title:"Blog Post Generation"},
+  {day:32,lesson:3,phase:2,title:"Social Media Content"},
+  {day:32,lesson:4,phase:2,title:"Marketing Copy"},
+  {day:32,lesson:5,phase:2,title:"Building the Full Writing Agent"},
+  {day:33,lesson:1,phase:2,title:"Email Agent Architecture"},
+  {day:33,lesson:2,phase:2,title:"Email Parsing & Understanding"},
+  {day:33,lesson:3,phase:2,title:"Drafting Responses"},
+  {day:33,lesson:4,phase:2,title:"Email Organization"},
+  {day:33,lesson:5,phase:2,title:"Building the Full Email Agent"},
+  {day:34,lesson:1,phase:2,title:"Scheduling Agent Architecture"},
+  {day:34,lesson:2,phase:2,title:"Calendar Integration"},
+  {day:34,lesson:3,phase:2,title:"Availability & Conflict Detection"},
+  {day:34,lesson:4,phase:2,title:"Meeting Scheduling Logic"},
+  {day:34,lesson:5,phase:2,title:"Building the Full Scheduling Agent"},
+  {day:35,lesson:1,phase:2,title:"Capstone Planning"},
+  {day:35,lesson:2,phase:2,title:"Building the Orchestrator"},
+  {day:35,lesson:3,phase:2,title:"Building Specialist Agents"},
+  {day:35,lesson:4,phase:2,title:"Integration & Testing"},
+  {day:35,lesson:5,phase:2,title:"Capstone Presentation"},
+  {day:36,lesson:1,phase:3,title:"Framework Comparison Criteria"},
+  {day:36,lesson:2,phase:3,title:"LangChain vs LlamaIndex"},
+  {day:36,lesson:3,phase:3,title:"CrewAI vs AutoGen"},
+  {day:36,lesson:4,phase:3,title:"Raw API vs Frameworks"},
+  {day:36,lesson:5,phase:3,title:"Building a Framework-Agnostic Agent"},
+  {day:37,lesson:1,phase:3,title:"What is Self-Improvement?"},
+  {day:37,lesson:2,phase:3,title:"Reflection Pattern"},
+  {day:37,lesson:3,phase:3,title:"Self-Correction"},
+  {day:37,lesson:4,phase:3,title:"Learning from Feedback"},
+  {day:37,lesson:5,phase:3,title:"Building a Self-Improving Agent"},
+  {day:38,lesson:1,phase:3,title:"Why Guardrails Matter"},
+  {day:38,lesson:2,phase:3,title:"Input Validation"},
+  {day:38,lesson:3,phase:3,title:"Output Filtering"},
+  {day:38,lesson:4,phase:3,title:"PII Detection & Redaction"},
+  {day:38,lesson:5,phase:3,title:"Building a Guardrail System"},
+  {day:39,lesson:1,phase:3,title:"Understanding Agent Costs"},
+  {day:39,lesson:2,phase:3,title:"Caching Strategies"},
+  {day:39,lesson:3,phase:3,title:"Model Routing"},
+  {day:39,lesson:4,phase:3,title:"Token Budgeting"},
+  {day:39,lesson:5,phase:3,title:"Building a Cost-Optimized Agent"},
+  {day:40,lesson:1,phase:3,title:"Production Readiness Checklist"},
+  {day:40,lesson:2,phase:3,title:"Containerization"},
+  {day:40,lesson:3,phase:3,title:"Serverless Deployment"},
+  {day:40,lesson:4,phase:3,title:"Environment Management"},
+  {day:40,lesson:5,phase:3,title:"CI/CD for Agents"},
+  {day:41,lesson:1,phase:3,title:"What to Monitor"},
+  {day:41,lesson:2,phase:3,title:"Logging Agent Traces"},
+  {day:41,lesson:3,phase:3,title:"Alerting"},
+  {day:41,lesson:4,phase:3,title:"Dashboards"},
+  {day:41,lesson:5,phase:3,title:"Building a Monitoring Stack"},
+  {day:42,lesson:1,phase:3,title:"Agent as a Product"},
+  {day:42,lesson:2,phase:3,title:"User Onboarding"},
+  {day:42,lesson:3,phase:3,title:"Feedback Loops"},
+  {day:42,lesson:4,phase:3,title:"Pricing & Monetization"},
+  {day:42,lesson:5,phase:3,title:"Go-to-Market Strategy"},
+  {day:43,lesson:1,phase:3,title:"Why Agent Auth Matters"},
+  {day:43,lesson:2,phase:3,title:"API Key Management"},
+  {day:43,lesson:3,phase:3,title:"Role-Based Access Control"},
+  {day:43,lesson:4,phase:3,title:"OAuth & SSO"},
+  {day:43,lesson:5,phase:3,title:"Building an Auth Layer"},
+  {day:44,lesson:1,phase:3,title:"Why Rate Limit?"},
+  {day:44,lesson:2,phase:3,title:"Rate Limiting Algorithms"},
+  {day:44,lesson:3,phase:3,title:"Queue Management"},
+  {day:44,lesson:4,phase:3,title:"Backpressure & Load Shedding"},
+  {day:44,lesson:5,phase:3,title:"Building a Rate-Limited Agent"},
+  {day:45,lesson:1,phase:3,title:"Designing a Dev Agent"},
+  {day:45,lesson:2,phase:3,title:"Code Reading & Analysis"},
+  {day:45,lesson:3,phase:3,title:"Automated Code Review"},
+  {day:45,lesson:4,phase:3,title:"PR Creation & Management"},
+  {day:45,lesson:5,phase:3,title:"Building the Full Dev Agent"},
+  {day:46,lesson:1,phase:3,title:"Designing a Sales Agent"},
+  {day:46,lesson:2,phase:3,title:"Lead Research & Qualification"},
+  {day:46,lesson:3,phase:3,title:"Outreach Generation"},
+  {day:46,lesson:4,phase:3,title:"CRM Integration"},
+  {day:46,lesson:5,phase:3,title:"Building the Full Sales Agent"},
+  {day:47,lesson:1,phase:3,title:"Designing a Legal Agent"},
+  {day:47,lesson:2,phase:3,title:"Legal Document Processing"},
+  {day:47,lesson:3,phase:3,title:"Case Law Search"},
+  {day:47,lesson:4,phase:3,title:"Contract Analysis"},
+  {day:47,lesson:5,phase:3,title:"Building the Full Legal Agent"},
+  {day:48,lesson:1,phase:3,title:"Designing a Triage Agent"},
+  {day:48,lesson:2,phase:3,title:"Medical Knowledge Integration"},
+  {day:48,lesson:3,phase:3,title:"Symptom Assessment Logic"},
+  {day:48,lesson:4,phase:3,title:"Safety & Disclaimers"},
+  {day:48,lesson:5,phase:3,title:"Building the Full Triage Agent"},
+  {day:49,lesson:1,phase:3,title:"Designing a Finance Agent"},
+  {day:49,lesson:2,phase:3,title:"Financial Data Sources"},
+  {day:49,lesson:3,phase:3,title:"Analysis & Insights"},
+  {day:49,lesson:4,phase:3,title:"Report Generation"},
+  {day:49,lesson:5,phase:3,title:"Building the Full Finance Agent"},
+  {day:50,lesson:1,phase:3,title:"Designing an Education Agent"},
+  {day:50,lesson:2,phase:3,title:"Knowledge Base & Curriculum"},
+  {day:50,lesson:3,phase:3,title:"Adaptive Questioning"},
+  {day:50,lesson:4,phase:3,title:"Quiz Generation"},
+  {day:50,lesson:5,phase:3,title:"Building the Full Education Agent"},
+  {day:51,lesson:1,phase:3,title:"Testing Agent Logic"},
+  {day:51,lesson:2,phase:3,title:"Integration Testing"},
+  {day:51,lesson:3,phase:3,title:"Eval Datasets & Benchmarks"},
+  {day:51,lesson:4,phase:3,title:"Regression Testing"},
+  {day:51,lesson:5,phase:3,title:"Building a Test Suite"},
+  {day:52,lesson:1,phase:3,title:"What is Prompt Injection?"},
+  {day:52,lesson:2,phase:3,title:"Injection Techniques"},
+  {day:52,lesson:3,phase:3,title:"Defense Strategies"},
+  {day:52,lesson:4,phase:3,title:"Jailbreak Prevention"},
+  {day:52,lesson:5,phase:3,title:"Building a Security Layer"},
+  {day:53,lesson:1,phase:3,title:"When to Fine-Tune"},
+  {day:53,lesson:2,phase:3,title:"Preparing Training Data"},
+  {day:53,lesson:3,phase:3,title:"Fine-Tuning Process"},
+  {day:53,lesson:4,phase:3,title:"Evaluating Fine-Tuned Models"},
+  {day:53,lesson:5,phase:3,title:"Building a Fine-Tuned Agent"},
+  {day:54,lesson:1,phase:3,title:"Why Go Local?"},
+  {day:54,lesson:2,phase:3,title:"Ollama Setup"},
+  {day:54,lesson:3,phase:3,title:"llama.cpp & GGUF"},
+  {day:54,lesson:4,phase:3,title:"vLLM for Production"},
+  {day:54,lesson:5,phase:3,title:"Building a Local Agent"},
+  {day:55,lesson:1,phase:3,title:"Scaling Challenges"},
+  {day:55,lesson:2,phase:3,title:"Workflow Engines"},
+  {day:55,lesson:3,phase:3,title:"Load Balancing"},
+  {day:55,lesson:4,phase:3,title:"State Management"},
+  {day:55,lesson:5,phase:3,title:"Building a Scalable Orchestrator"},
+  {day:56,lesson:1,phase:3,title:"Agent Marketplace Concept"},
+  {day:56,lesson:2,phase:3,title:"Agent Packaging"},
+  {day:56,lesson:3,phase:3,title:"Discovery & Search"},
+  {day:56,lesson:4,phase:3,title:"Billing & Usage Tracking"},
+  {day:56,lesson:5,phase:3,title:"Building a Marketplace"},
+  {day:57,lesson:1,phase:3,title:"Voice Agent Architecture"},
+  {day:57,lesson:2,phase:3,title:"Speech-to-Text"},
+  {day:57,lesson:3,phase:3,title:"Text-to-Speech"},
+  {day:57,lesson:4,phase:3,title:"Real-Time Voice"},
+  {day:57,lesson:5,phase:3,title:"Building a Voice Agent"},
+  {day:58,lesson:1,phase:3,title:"Vision Agent Architecture"},
+  {day:58,lesson:2,phase:3,title:"Image Understanding"},
+  {day:58,lesson:3,phase:3,title:"Screenshot & UI Analysis"},
+  {day:58,lesson:4,phase:3,title:"Video Processing"},
+  {day:58,lesson:5,phase:3,title:"Building a Vision Agent"},
+  {day:59,lesson:1,phase:3,title:"Agent UX Principles"},
+  {day:59,lesson:2,phase:3,title:"Conversational Patterns"},
+  {day:59,lesson:3,phase:3,title:"Feedback & Confidence"},
+  {day:59,lesson:4,phase:3,title:"Error Recovery UX"},
+  {day:59,lesson:5,phase:3,title:"Designing Agent Interfaces"},
+  {day:60,lesson:1,phase:3,title:"Capstone Planning"},
+  {day:60,lesson:2,phase:3,title:"Core Agent Build"},
+  {day:60,lesson:3,phase:3,title:"Memory & RAG"},
+  {day:60,lesson:4,phase:3,title:"Testing & Hardening"},
+  {day:60,lesson:5,phase:3,title:"Capstone Launch"},
+];
+
+const CURRENT_DAY = 23;
+const CURRENT_LESSON = 1;
+
+function lessonSlug(d, l) {
+  return String(d).padStart(2,'0') + String(l).padStart(2,'0');
+}
+
+function buildNav() {
+  const container = document.getElementById('nav-items');
+  let html = '';
+  let currentPhase = 0;
+  let currentDay = 0;
+  CURRICULUM.forEach(t => {
+    if (t.phase !== currentPhase) {
+      if (currentPhase > 0) html += '</div>';
+      currentPhase = t.phase;
+      currentDay = 0;
+      const labels = ['','Foundations','Intermediate','Advanced'];
+      html += '<div class="nav-section"><div class="nav-section-title">Phase ' + t.phase + ': ' + labels[t.phase] + '</div>';
+    }
+    if (t.day !== currentDay) {
+      if (currentDay > 0) html += '</div>';
+      currentDay = t.day;
+      html += '<div class="nav-day-group' + (t.day === CURRENT_DAY ? ' open' : '') + '" id="nav-day-' + t.day + '">';
+      html += '<div class="nav-day-header" onclick="toggleNavDay(' + t.day + ')">Day ' + t.day + '</div>';
+      html += '<div class="nav-lessons" id="nav-lessons-' + t.day + '">';
+    }
+    const active = (t.day === CURRENT_DAY && t.lesson === CURRENT_LESSON) ? ' active' : '';
+    const file = lessonSlug(t.day, t.lesson) + '.html';
+    html += '<a class="nav-item' + active + '" href="' + file + '" data-day="' + t.day + '" data-lesson="' + t.lesson + '">';
+    html += '<span class="nav-check" id="check-' + t.day + '-' + t.lesson + '">&#10003;</span> ';
+    html += '<span class="nav-lesson-num">' + t.lesson + '</span> ' + t.title + '</a>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function toggleNavDay(day) {
+  const el = document.getElementById('nav-lessons-' + day);
+  if (el) el.classList.toggle('collapsed');
+}
+
+function markLessonComplete(day, lesson) {
+  try {
+    const key = 'ai_training_completed';
+    let completed = JSON.parse(localStorage.getItem(key) || '[]');
+    const lessonKey = day + '-' + lesson;
+    if (!completed.includes(lessonKey)) {
+      completed.push(lessonKey);
+      localStorage.setItem(key, JSON.stringify(completed));
+    }
+    const status = document.getElementById('status-' + day + '-' + lesson);
+    if (status) { status.innerHTML = '<span>\u2705</span> Completed'; status.classList.add('done'); }
+    const total = 300;
+    const pct = Math.round((completed.length / total) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    const check = document.getElementById('check-' + day + '-' + lesson);
+    if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  try {
+    const completed = JSON.parse(localStorage.getItem('ai_training_completed') || '[]');
+    const pct = Math.round((completed.length / 300) * 100);
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = pct + '%';
+    completed.forEach(key => {
+      const parts = key.split('-');
+      if (parts.length === 2) {
+        const check = document.getElementById('check-' + parts[0] + '-' + parts[1]);
+        const nav = document.querySelector('.nav-item[data-day="' + parts[0] + '"][data-lesson="' + parts[1] + '"]');
+        if (check) { check.innerHTML = '\u2713'; check.style.color = 'var(--green)'; }
+        if (nav) nav.classList.add('completed');
+      }
+    });
+    const status = document.getElementById('status-' + CURRENT_DAY + '-' + CURRENT_LESSON);
+    if (status && completed.includes(CURRENT_DAY + '-' + CURRENT_LESSON)) {
+      status.innerHTML = '<span>\u2705</span> Completed';
+      status.classList.add('done');
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
